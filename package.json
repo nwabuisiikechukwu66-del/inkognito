@@ -6,7 +6,7 @@
     "dev": "concurrently \"next dev\" \"convex dev\"",
     "dev:next": "next dev",
     "dev:convex": "convex dev",
-    "build": "npx convex deploy && next build",
+    "build": "npx convex codegen && next build",
     "start": "next start",
     "lint": "next lint"
   },

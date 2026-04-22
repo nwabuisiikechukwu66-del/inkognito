@@ -9,7 +9,7 @@
  * - Global metadata + OG tags
  */
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
 import { AnonSessionProvider } from "@/components/providers/AnonSessionProvider";
@@ -19,6 +19,14 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -74,9 +82,9 @@ export default function RootLayout({
               {/* Desktop Sidebar */}
               <Sidebar />
 
-              <div className="flex-1 flex flex-col min-h-screen md:ml-64 pb-16 md:pb-0">
+              <div className="flex-1 flex flex-col min-h-screen md:pl-64">
                 {/* Top navigation - hidden on desktop since sidebar has it */}
-                <div className="md:hidden">
+                <div className="md:hidden sticky top-0 z-50">
                   <Navbar />
                 </div>
 

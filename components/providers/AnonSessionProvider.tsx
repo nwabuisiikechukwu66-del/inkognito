@@ -20,6 +20,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
   ReactNode,
 } from "react";
 import { useMutation } from "convex/react";
@@ -122,20 +123,13 @@ export function AnonSessionProvider({ children }: { children: ReactNode }) {
     initSession();
   }, [upsertSession]);
 
-  const updateSessionId = (newSessionId: string) => {
+  const updateSessionId = useCallback((newSessionId: string) => {
     localStorage.setItem("ink_session_id", newSessionId);
     setSession(prev => ({ ...prev, sessionId: newSessionId }));
-  };
-
-  // Keep the reference stable in context
-  useEffect(() => {
-    if (session.isLoaded && session.updateSessionId !== updateSessionId) {
-      setSession(prev => ({ ...prev, updateSessionId }));
-    }
-  }, [session.isLoaded, updateSessionId]);
+  }, []);
 
   return (
-    <AnonSessionContext.Provider value={session}>
+    <AnonSessionContext.Provider value={{ ...session, updateSessionId }}>
       {children}
     </AnonSessionContext.Provider>
   );

@@ -59,7 +59,7 @@ export function Sidebar() {
       )}
 
       {/* Main Nav */}
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="px-4 space-y-2">
         {TOP_LINKS.map((link) => {
           const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
           const Icon = link.icon;

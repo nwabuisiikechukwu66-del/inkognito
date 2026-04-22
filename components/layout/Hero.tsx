@@ -25,7 +25,7 @@ export function Hero() {
       {/* Decorative horizontal rule lines — editorial page layout feel */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Vertical red line, far left */}
-        <div className="absolute left-[5%] top-0 bottom-0 w-px bg-[var(--crimson)] opacity-20" />
+        <div className="absolute left-0 top-0 bottom-0 w-px bg-[var(--crimson)] opacity-20" />
         {/* Diagonal line */}
         <div
           className="absolute opacity-[0.04]"
@@ -48,8 +48,8 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="container-ink py-16 md:py-24 relative">
-        <div className="max-w-2xl">
+      <div className="px-6 md:px-12 py-16 md:py-24 relative">
+        <div className="max-w-3xl">
           {/* Eyebrow */}
           <motion.p
             {...fadeUp(0)}
@@ -59,14 +59,13 @@ export function Hero() {
           </motion.p>
 
           {/* Main headline — editorial, Playfair Display */}
-          <motion.h1
-            {...fadeUp(0.1)}
+          <h1
             className="heading-editorial text-[clamp(2.5rem,6vw,4.5rem)] text-[var(--white)] mb-6 leading-[1.05]"
           >
             Every secret
             <br />
             <em className="text-[var(--paper)]">deserves an audience.</em>
-          </motion.h1>
+          </h1>
 
           {/* Subtext */}
           <motion.p

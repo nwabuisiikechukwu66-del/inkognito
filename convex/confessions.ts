@@ -82,8 +82,8 @@ export const getFeed = query({
       confessions.sort((a, b) => b.heatScore - a.heatScore);
       confessions = confessions.slice(0, limit);
     } else if (sortBy === "random") {
-      // Fetch top 100 recent and shuffle
-      confessions = await feedQuery.order("desc").take(100);
+      // Fetch top 200 recent and shuffle
+      confessions = await feedQuery.order("desc").take(200);
       confessions.sort(() => Math.random() - 0.5);
       confessions = confessions.slice(0, limit);
     } else {

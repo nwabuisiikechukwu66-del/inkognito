@@ -46,7 +46,7 @@ export function FeedPage() {
   }, []);
 
   return (
-    <div className="container-ink py-10">
+    <div className="px-4 md:px-12 py-10">
       <div className="flex flex-col lg:flex-row gap-8">
 
         {/* ── Main Feed Column ─────────────────────────────── */}
@@ -143,6 +143,13 @@ export function FeedPage() {
                   <ConfessionCard confession={confession} />
                 </motion.div>
               ))}
+
+              {/* Load more indicator / end of void */}
+              <div className="py-12 text-center">
+                <p className="font-mono text-[10px] text-[var(--muted)] uppercase tracking-[0.3em]">
+                  {confessions.length >= 200 ? "You have reached the end of the void." : "Whispers continue below..."}
+                </p>
+              </div>
             </motion.div>
           )}
         </div>

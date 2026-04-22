@@ -12,6 +12,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
@@ -174,13 +175,19 @@ export function FeedPage() {
 /* ── Empty state ───────────────────────────────────────────── */
 function EmptyFeed() {
   return (
-    <div className="py-20 text-center">
+    <div className="py-20 text-center border border-[var(--border)] border-dashed bg-[var(--surface)]/30 rounded-xl px-6">
       <div className="font-display text-5xl italic text-[var(--muted)] mb-4">
         Silence.
       </div>
-      <p className="text-[var(--dim)] text-sm font-mono uppercase tracking-widest">
-        No confessions yet. Be the first.
+      <p className="text-[var(--dim)] text-sm font-mono uppercase tracking-[0.2em] mb-8">
+        No confessions found in this void.
       </p>
+      <Link 
+        href="/confess"
+        className="inline-flex items-center gap-2 px-8 py-3 bg-[var(--crimson)] text-[var(--white)] font-mono text-[11px] uppercase tracking-widest hover:bg-[var(--crimson-bright)] transition-all"
+      >
+        Be the First to Speak
+      </Link>
     </div>
   );
 }

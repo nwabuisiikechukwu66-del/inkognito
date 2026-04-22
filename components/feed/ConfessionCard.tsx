@@ -114,7 +114,10 @@ export function ConfessionCard({ confession }: Props) {
 
   /* ── Handlers ─────────────────────────────────────────────── */
   async function handleReact(type: string) {
-    if (!sessionId) return;
+    if (!sessionId) {
+      toast.error("Connecting to the void... please wait.");
+      return;
+    }
 
     // Optimistic update
     const prev = myReaction;
@@ -144,7 +147,10 @@ export function ConfessionCard({ confession }: Props) {
 
 
   async function handleReport() {
-    if (!sessionId) return;
+    if (!sessionId) {
+      toast.error("Connecting to the void... please wait.");
+      return;
+    }
     try {
       await reportMutation({
         targetId: confession._id,
@@ -159,7 +165,10 @@ export function ConfessionCard({ confession }: Props) {
   }
 
   async function handleBookmark() {
-    if (!sessionId) return;
+    if (!sessionId) {
+      toast.error("Connecting to the void... please wait.");
+      return;
+    }
     try {
       const res = await toggleBookmark({ confessionId: confession._id, sessionId });
       setBookmarked(res.bookmarked);
@@ -170,7 +179,10 @@ export function ConfessionCard({ confession }: Props) {
   }
 
   async function handleEcho() {
-    if (!sessionId) return;
+    if (!sessionId) {
+      toast.error("Connecting to the void... please wait.");
+      return;
+    }
     try {
       const res = await toggleEcho({ confessionId: confession._id, sessionId });
       setEchoed(res.echoed);
@@ -391,13 +403,16 @@ export function ConfessionCard({ confession }: Props) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-3">
-            <Link
-              href={`/c/${confession._id}`}
-              className="flex items-center gap-1.5 text-[var(--dim)] hover:text-[var(--ash)] transition-colors"
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className={clsx(
+                "flex items-center gap-1.5 transition-colors",
+                showComments ? "text-[var(--white)]" : "text-[var(--dim)] hover:text-[var(--ash)]"
+              )}
             >
-              <MessageCircle size={13} />
+              <MessageCircle size={13} className={clsx(showComments && "text-[var(--crimson)]")} />
               <span className="font-mono text-[10px]">{confession.commentCount}</span>
-            </Link>
+            </button>
 
             <button
               onClick={handleEcho}

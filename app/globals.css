@@ -182,6 +182,10 @@ body::after {
   padding: 0 1.5rem;
 }
 
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* Feed column width */
 .feed-width {
   max-width: 680px;

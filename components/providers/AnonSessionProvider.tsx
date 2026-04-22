@@ -72,9 +72,15 @@ export function AnonSessionProvider({ children }: { children: ReactNode }) {
 
       try {
         // ipapi.co — free tier: 1,000 requests/day, no API key needed
+        // Manual timeout for older mobile browser compatibility
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const geoRes = await fetch("https://ipapi.co/json/", {
-          signal: AbortSignal.timeout(3000), // 3s timeout, fail gracefully
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+
         if (geoRes.ok) {
           const geo = await geoRes.json();
           country = geo.country_code ?? null;   // "NG"

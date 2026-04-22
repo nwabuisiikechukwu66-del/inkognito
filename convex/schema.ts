@@ -10,6 +10,10 @@
  * - rtcSignals    : WebRTC signaling data (offer/answer/ICE candidates)
  * - reports       : Content moderation reports
  * - anonUsers     : Lightweight anonymous profiles (UUID-based)
+ * - companionChats: AI companion messages for persistence
+ * - directMessages: 1-on-1 private messaging sessions
+ * - dmMessages    : Messages within direct messages
+ * - syncTokens    : Ephemeral tokens for device linking
  *
  * Note: No email, no personal data beyond session UUID + rough location.
  */
@@ -30,6 +34,12 @@ export default defineSchema({
     lastSeenAt: v.number(),
     isBanned: v.boolean(),
     banReason: v.optional(v.string()),
+    // Premium & Monetization Additions
+    isPremium: v.optional(v.boolean()),
+    subscriptionId: v.optional(v.string()),
+    paymentProvider: v.optional(v.string()), // 'paystack' | 'polar'
+    chatAttemptsToday: v.optional(v.number()),
+    lastChatReset: v.optional(v.number()),
   }).index("by_session", ["sessionId"])
     .index("by_username", ["username"]),
 
@@ -40,8 +50,8 @@ export default defineSchema({
     category: v.string(),          // "sexual" | "relationship" | "work" | "family" | "dark" | "funny" | "other"
     isNSFW: v.boolean(),           // Explicitly flagged as adult content
     mediaUrl: v.optional(v.string()), // Optional image (Cloudflare R2 URL)
-    country: v.optional(v.string()),
-    city: v.optional(v.string()),
+    country: v.optional(v.string()), // Kept in DB for analytics, stripped for users
+    city: v.optional(v.string()),    // Kept in DB for analytics, stripped for users
     heatScore: v.number(),         // Computed engagement score for trending sort
     viewCount: v.number(),
     isModerated: v.boolean(),      // Passed automated moderation
@@ -67,7 +77,7 @@ export default defineSchema({
   reactions: defineTable({
     confessionId: v.id("confessions"),
     sessionId: v.string(),
-    type: v.string(),              // "fire" | "heart" | "shock" | "tears" | "dark"
+    type: v.string(),              // Expanded reaction types
     createdAt: v.number(),
   }).index("by_confession", ["confessionId"])
     .index("by_session_confession", ["sessionId", "confessionId"]),
@@ -119,4 +129,37 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_target", ["targetId"])
     .index("by_status", ["status"]),
+
+  /* ── AI Companion Chats ──────────────────────────────────── */
+  companionChats: defineTable({
+    sessionId: v.string(),
+    role: v.string(),              // "user" | "assistant"
+    content: v.string(),
+    createdAt: v.number(),
+  }).index("by_session", ["sessionId"]),
+
+  /* ── Direct Messages (1-on-1 Persistent) ─────────────────── */
+  directMessages: defineTable({
+    participantA: v.string(),      // sessionId
+    participantB: v.string(),      // sessionId
+    lastMessageAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_participantA", ["participantA"])
+    .index("by_participantB", ["participantB"]),
+
+  dmMessages: defineTable({
+    dmId: v.id("directMessages"),
+    senderSessionId: v.string(),
+    content: v.string(),
+    createdAt: v.number(),
+    isRead: v.boolean(),
+  }).index("by_dm", ["dmId"]),
+
+  /* ── Sync Tokens (QR Code Device Linking) ────────────────── */
+  syncTokens: defineTable({
+    token: v.string(),
+    sourceSessionId: v.string(),
+    expiresAt: v.number(),
+    isConsumed: v.boolean(),
+  }).index("by_token", ["token"]),
 });

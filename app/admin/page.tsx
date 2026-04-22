@@ -107,9 +107,9 @@ function StatsPanel({ token }: { token: string }) {
   const statCards = [
     { label: "Total Confessions", value: stats.totalConfessions },
     { label: "Today", value: stats.todayConfessions },
-    { label: "Hidden", value: stats.hiddenConfessions },
+    { label: "Premium Subs", value: stats.premiumUsers },
     { label: "Total Users", value: stats.totalUsers },
-    { label: "Banned", value: stats.bannedUsers },
+    { label: "Active 24h", value: stats.activeUsers24h },
     { label: "Pending Reports", value: stats.pendingReports, alert: stats.pendingReports > 0 },
   ];
 

@@ -31,6 +31,7 @@ interface AnonSession {
   country: string | null;
   city: string | null;
   isLoaded: boolean;
+  updateSessionId: (newSessionId: string) => void;
 }
 
 const AnonSessionContext = createContext<AnonSession>({
@@ -38,6 +39,7 @@ const AnonSessionContext = createContext<AnonSession>({
   country: null,
   city: null,
   isLoaded: false,
+  updateSessionId: () => {},
 });
 
 export function useAnonSession() {
@@ -50,6 +52,7 @@ export function AnonSessionProvider({ children }: { children: ReactNode }) {
     country: null,
     city: null,
     isLoaded: false,
+    updateSessionId: () => {},
   });
 
   const upsertSession = useMutation(api.users.upsertSession);
@@ -107,11 +110,23 @@ export function AnonSessionProvider({ children }: { children: ReactNode }) {
       }
 
       // ── 5. Set context ──────────────────────────────────────
-      setSession({ sessionId, country, city, isLoaded: true });
+      setSession({ sessionId, country, city, isLoaded: true, updateSessionId });
     }
 
     initSession();
   }, [upsertSession]);
+
+  const updateSessionId = (newSessionId: string) => {
+    localStorage.setItem("ink_session_id", newSessionId);
+    setSession(prev => ({ ...prev, sessionId: newSessionId }));
+  };
+
+  // Keep the reference stable in context
+  useEffect(() => {
+    if (session.isLoaded && session.updateSessionId !== updateSessionId) {
+      setSession(prev => ({ ...prev, updateSessionId }));
+    }
+  }, [session.isLoaded, updateSessionId]);
 
   return (
     <AnonSessionContext.Provider value={session}>

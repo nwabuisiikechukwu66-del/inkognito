@@ -17,6 +17,8 @@ import { Toaster } from "react-hot-toast";
 import { AgeGate } from "@/components/ui/AgeGate";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { BottomNav } from "@/components/layout/BottomNav";
 
 export const metadata: Metadata = {
   title: {
@@ -68,14 +70,26 @@ export default function RootLayout({
             {/* 18+ age verification gate */}
             <AgeGate />
 
-            {/* Top navigation */}
-            <Navbar />
+            <div className="flex min-h-screen bg-[#050505]">
+              {/* Desktop Sidebar */}
+              <Sidebar />
 
-            {/* Page content */}
-            <main className="min-h-screen">{children}</main>
+              <div className="flex-1 flex flex-col min-h-screen md:ml-64 pb-16 md:pb-0">
+                {/* Top navigation - hidden on desktop since sidebar has it */}
+                <div className="md:hidden">
+                  <Navbar />
+                </div>
 
-            {/* Site footer — required for AdSense (Terms + Privacy links) */}
-            <Footer />
+                {/* Page content */}
+                <main className="flex-1 relative">{children}</main>
+
+                {/* Site footer — required for AdSense (Terms + Privacy links) */}
+                <Footer />
+              </div>
+
+              {/* Mobile Bottom Navigation */}
+              <BottomNav />
+            </div>
 
             {/* Toast notifications — dark themed */}
             <Toaster

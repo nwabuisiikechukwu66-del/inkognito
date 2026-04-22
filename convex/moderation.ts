@@ -78,6 +78,8 @@ export const getStats = query({
     const todayConfessions = confessions.filter(
       (c) => c.createdAt > last24h
     ).length;
+    const premiumUsers = users.filter((u) => u.isPremium).length;
+    const activeUsers24h = users.filter((u) => u.lastSeenAt > last24h).length;
 
     return {
       totalConfessions: confessions.length,
@@ -87,6 +89,8 @@ export const getStats = query({
       bannedUsers,
       pendingReports,
       totalReports: reports.length,
+      premiumUsers,
+      activeUsers24h,
     };
   },
 });

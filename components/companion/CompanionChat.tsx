@@ -19,6 +19,10 @@ import { Send, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
 import { formatDistanceToNow } from "date-fns";
 
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useAnonSession } from "@/components/providers/AnonSessionProvider";
+
 /* ── Types ─────────────────────────────────────────────────── */
 interface Message {
   role: "user" | "assistant";
@@ -36,7 +40,17 @@ const INTRO_MESSAGE: Message = {
 };
 
 export function CompanionChat() {
-  const [messages, setMessages] = useState<Message[]>([INTRO_MESSAGE]);
+  const { sessionId } = useAnonSession();
+  const [localMessages, setLocalMessages] = useState<Message[]>([INTRO_MESSAGE]);
+  const history = useQuery(api.companion.getHistory, sessionId ? { sessionId } : "skip");
+  const saveMessage = useMutation(api.companion.saveMessage);
+  const clearHistoryDB = useMutation(api.companion.clearHistory);
+
+  // Combine DB history and local streaming messages
+  const messages: Message[] = history && history.length > 0 
+    ? [...history.map(m => ({ role: m.role as "user"|"assistant", content: m.content, timestamp: m.createdAt } as Message)), ...localMessages.filter(m => m.streaming)]
+    : localMessages;
+
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,7 +74,13 @@ export function CompanionChat() {
       timestamp: Date.now(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    // Save user message to DB
+    if (sessionId) {
+      await saveMessage({ sessionId, role: "user", content: trimmed });
+    } else {
+      setLocalMessages((prev) => [...prev, userMsg]);
+    }
+    
     setInput("");
     setIsStreaming(true);
 
@@ -71,7 +91,7 @@ export function CompanionChat() {
       timestamp: Date.now(),
       streaming: true,
     };
-    setMessages((prev) => [...prev, assistantMsg]);
+    setLocalMessages((prev) => [...prev, assistantMsg]);
 
     // Build message history for API (exclude intro, keep last 20)
     const history = [...messages, userMsg]
@@ -122,8 +142,8 @@ export function CompanionChat() {
             const delta = json.choices?.[0]?.delta?.content;
             if (delta) {
               fullContent += delta;
-              // Update the streaming message content
-              setMessages((prev) => {
+              // Update the streaming message content locally
+              setLocalMessages((prev) => {
                 const updated = [...prev];
                 const last = updated[updated.length - 1];
                 if (last.streaming) {
@@ -141,24 +161,29 @@ export function CompanionChat() {
         }
       }
 
-      // Finalize message (remove streaming flag)
-      setMessages((prev) => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last.streaming) {
-          updated[updated.length - 1] = {
-            ...last,
-            content: fullContent || "I'm here. Take your time.",
-            streaming: false,
-          };
-        }
-        return updated;
-      });
+      // Finalize message (remove streaming flag and save to DB)
+      if (sessionId) {
+        await saveMessage({ sessionId, role: "assistant", content: fullContent || "I'm here. Take your time." });
+        setLocalMessages((prev) => prev.filter(m => !m.streaming));
+      } else {
+        setLocalMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.streaming) {
+            updated[updated.length - 1] = {
+              ...last,
+              content: fullContent || "I'm here. Take your time.",
+              streaming: false,
+            };
+          }
+          return updated;
+        });
+      }
     } catch (err: unknown) {
       if ((err as Error).name === "AbortError") return;
 
       // Fallback response on error
-      setMessages((prev) => {
+      setLocalMessages((prev) => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
         if (last.streaming) {
@@ -187,7 +212,8 @@ export function CompanionChat() {
 
   function handleReset() {
     abortRef.current?.abort();
-    setMessages([INTRO_MESSAGE]);
+    if (sessionId) clearHistoryDB({ sessionId });
+    setLocalMessages([INTRO_MESSAGE]);
     setInput("");
     setIsStreaming(false);
   }
@@ -204,7 +230,7 @@ export function CompanionChat() {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[var(--crimson)] animate-pulse-red" />
             <span className="font-mono text-xs text-[var(--ash)] uppercase tracking-widest">
-              Companion · Session only
+              Companion · Synced
             </span>
           </div>
           <button
@@ -297,7 +323,7 @@ export function CompanionChat() {
             </button>
           </div>
           <p className="font-mono text-[9px] text-[var(--muted)] uppercase tracking-widest mt-2 text-center">
-            Not stored · Resets on close · Not a crisis line
+            Synced across devices · Not a crisis line
           </p>
         </div>
       </div>

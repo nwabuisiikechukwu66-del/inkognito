@@ -10,6 +10,7 @@
 
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -132,6 +133,64 @@ http.route({
     return new Response(JSON.stringify({ status: "queued" }), {
       headers: { "Content-Type": "application/json" },
     });
+  }),
+});
+
+/* ── Webhooks (Payments) ───────────────────────────────────── */
+
+/**
+ * Paystack Webhook
+ * Updates user to premium on successful subscription.
+ */
+http.route({
+  path: "/paystack-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // In production, verify the x-paystack-signature header here
+    const payload = await request.json();
+    
+    if (payload.event === "charge.success" || payload.event === "subscription.create") {
+      const sessionId = payload.data?.metadata?.session_id || payload.data?.customer?.metadata?.session_id;
+      
+      if (sessionId) {
+        // Upgrade the user to premium using an internal mutation (or runQuery)
+        // Since we are in an action, we run a mutation
+        await ctx.runMutation(internal.users.upgradeToPremium, {
+          sessionId,
+          provider: "paystack",
+          subscriptionId: payload.data.subscription_code || "sub_paystack_mock",
+        });
+      }
+    }
+    
+    return new Response("OK", { status: 200 });
+  }),
+});
+
+/**
+ * Polar Webhook
+ * Updates user to premium on successful subscription.
+ */
+http.route({
+  path: "/polar-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // In production, verify the webhook signature here
+    const payload = await request.json();
+    
+    if (payload.type === "subscription.created" || payload.type === "subscription.updated") {
+      const sessionId = payload.data?.custom_field_data?.session_id;
+      
+      if (sessionId) {
+        await ctx.runMutation(internal.users.upgradeToPremium, {
+          sessionId,
+          provider: "polar",
+          subscriptionId: payload.data.id || "sub_polar_mock",
+        });
+      }
+    }
+    
+    return new Response("OK", { status: 200 });
   }),
 });
 

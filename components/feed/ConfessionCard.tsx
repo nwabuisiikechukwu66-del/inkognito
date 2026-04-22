@@ -23,7 +23,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Share2, Flag, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { MessageCircle, Share2, Flag, ChevronDown, ChevronUp, Eye, Flame, Heart, Zap, Droplets, Moon, Smile, Skull, HeartHandshake, Frown } from "lucide-react";
+import { motion } from "framer-motion";
 import { clsx } from "clsx";
 import toast from "react-hot-toast";
 import { Id } from "@/convex/_generated/dataModel";
@@ -34,8 +35,7 @@ interface ConfessionData {
   content: string;
   category: string;
   isNSFW: boolean;
-  country?: string;
-  city?: string;
+  authorUsername?: string;
   reactionCount: number;
   reactionCounts: Record<string, number>;
   commentCount: number;
@@ -49,19 +49,17 @@ interface Props {
 
 /* ── Reaction definitions ──────────────────────────────────── */
 const REACTIONS = [
-  { type: "fire",  emoji: "🔥", label: "Fire"  },
-  { type: "heart", emoji: "♥",  label: "Heart" },
-  { type: "shock", emoji: "⚡", label: "Shock" },
-  { type: "tears", emoji: "💧", label: "Tears" },
-  { type: "dark",  emoji: "☽",  label: "Dark"  },
+  { type: "flame", icon: Flame, label: "Fire" },
+  { type: "heart", icon: Heart, label: "Love" },
+  { type: "zap", icon: Zap, label: "Shock" },
+  { type: "droplets", icon: Droplets, label: "Tears" },
+  { type: "moon", icon: Moon, label: "Dark" },
+  { type: "laugh", icon: Smile, label: "Funny" },
+  { type: "skull", icon: Skull, label: "Dead" },
+  { type: "handHeart", icon: HeartHandshake, label: "Support" },
+  { type: "angry", icon: Frown, label: "Angry" },
+  { type: "eye", icon: Eye, label: "Watching" },
 ];
-
-/* ── Country display ───────────────────────────────────────── */
-const COUNTRY_NAMES: Record<string, string> = {
-  NG: "Nigeria", US: "United States", GB: "UK", CA: "Canada",
-  AU: "Australia", DE: "Germany", FR: "France", IN: "India",
-  BR: "Brazil", ZA: "South Africa",
-};
 
 const MAX_PREVIEW_LENGTH = 280; // Characters before "Read more"
 
@@ -155,10 +153,6 @@ export function ConfessionCard({ confession }: Props) {
     addSuffix: true,
   });
 
-  const locationStr = confession.city
-    ? `${confession.city}, ${confession.country ?? ""}`
-    : COUNTRY_NAMES[confession.country ?? ""] ?? confession.country ?? "";
-
   return (
     <article
       className={clsx(
@@ -171,12 +165,9 @@ export function ConfessionCard({ confession }: Props) {
         {/* ── Header ──────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            {/* Author (always anonymous) */}
-            <span className="font-mono text-[10px] text-[var(--dim)] uppercase tracking-widest">
-              Anon
-              {locationStr && (
-                <span className="text-[var(--muted)] ml-1.5">· {locationStr}</span>
-              )}
+            {/* Author */}
+            <span className="font-mono text-[10px] text-[var(--dim)] uppercase tracking-widest font-bold">
+              {confession.authorUsername ? confession.authorUsername : "Anon"}
             </span>
 
             {/* Category badge */}
@@ -247,27 +238,32 @@ export function ConfessionCard({ confession }: Props) {
 
         {/* ── Reaction bar ────────────────────────────────── */}
         <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-1">
-            {REACTIONS.map((r) => (
-              <button
-                key={r.type}
-                onClick={() => handleReact(r.type)}
-                title={r.label}
-                className={clsx(
-                  "flex items-center gap-1 px-2 py-1 text-[11px] transition-all duration-150 border",
-                  myReaction === r.type
-                    ? "border-[var(--crimson-dim)] bg-[var(--crimson-dim)] text-[var(--white)]"
-                    : "border-transparent text-[var(--dim)] hover:border-[var(--border)] hover:text-[var(--ash)]"
-                )}
-              >
-                <span className="text-[13px]">{r.emoji}</span>
-                {(localCounts[r.type] ?? 0) > 0 && (
-                  <span className="font-mono text-[9px]">
-                    {localCounts[r.type]}
-                  </span>
-                )}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {REACTIONS.map((r) => {
+              const Icon = r.icon;
+              const active = myReaction === r.type;
+              return (
+                <motion.button
+                  whileTap={{ scale: 0.8 }}
+                  key={r.type}
+                  onClick={() => handleReact(r.type)}
+                  title={r.label}
+                  className={clsx(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-all duration-200 border",
+                    active
+                      ? "border-[var(--crimson-dim)] bg-[var(--crimson-dim)] text-[var(--white)] shadow-[0_0_10px_rgba(196,30,58,0.3)]"
+                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--dim)] hover:border-[var(--crimson-dim)] hover:text-[var(--crimson)]"
+                  )}
+                >
+                  <Icon size={14} className={active ? "fill-current" : ""} />
+                  {(localCounts[r.type] ?? 0) > 0 && (
+                    <span className="font-mono text-[10px] font-medium">
+                      {localCounts[r.type]}
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
 
           {/* Action buttons: comment, share, report */}

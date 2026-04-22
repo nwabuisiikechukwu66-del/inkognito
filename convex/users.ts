@@ -10,7 +10,7 @@
  * 3. Optionally: createAccount() to add a username+password
  */
 
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 /* ─── Queries ─────────────────────────────────────────────── */
@@ -118,6 +118,70 @@ export const createAccount = mutation({
     await ctx.db.patch(existing._id, {
       username: args.username,
       passwordHash: args.passwordHash,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Internal mutation to upgrade a user to premium via webhook.
+ */
+export const upgradeToPremium = internalMutation({
+  args: {
+    sessionId: v.string(),
+    provider: v.string(),
+    subscriptionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("anonUsers")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        isPremium: true,
+        paymentProvider: args.provider,
+        subscriptionId: args.subscriptionId,
+      });
+    }
+  },
+});
+
+/**
+ * Set a custom username. Only allowed for premium users.
+ */
+export const setUsername = mutation({
+  args: {
+    sessionId: v.string(),
+    username: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Validate username format
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(args.username)) {
+      throw new Error(
+        "Username must be 3-20 characters, letters/numbers/underscores only."
+      );
+    }
+
+    const existing = await ctx.db
+      .query("anonUsers")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .first();
+
+    if (!existing) throw new Error("Session not found.");
+    if (!existing.isPremium) throw new Error("Only premium users can set custom usernames.");
+
+    // Check uniqueness
+    const taken = await ctx.db
+      .query("anonUsers")
+      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .first();
+    if (taken && taken._id !== existing._id) throw new Error("Username already taken.");
+
+    await ctx.db.patch(existing._id, {
+      username: args.username,
     });
 
     return { success: true };

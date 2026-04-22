@@ -112,8 +112,17 @@ export const getFeed = query({
           reactionCounts[r.type] = (reactionCounts[r.type] ?? 0) + 1;
         }
 
+        const author = await ctx.db
+          .query("anonUsers")
+          .withIndex("by_session", (q) => q.eq("sessionId", c.sessionId))
+          .first();
+
+        // Remove location data before sending to client for privacy
+        const { country, city, ...safeConfession } = c;
+
         return {
-          ...c,
+          ...safeConfession,
+          authorUsername: author?.username,
           reactionCount: reactions.length,
           reactionCounts,
           commentCount: comments.length,
@@ -157,8 +166,17 @@ export const getById = query({
       reactionCounts[r.type] = (reactionCounts[r.type] ?? 0) + 1;
     }
 
+    const author = await ctx.db
+      .query("anonUsers")
+      .withIndex("by_session", (q) => q.eq("sessionId", confession.sessionId))
+      .first();
+
+    // Remove location data for privacy
+    const { country, city, ...safeConfession } = confession;
+
     return {
-      ...confession,
+      ...safeConfession,
+      authorUsername: author?.username,
       reactionCount: reactions.length,
       reactionCounts,
       comments,
@@ -250,7 +268,10 @@ export const react = mutation({
     type: v.string(),
   },
   handler: async (ctx, args) => {
-    const valid = ["fire", "heart", "shock", "tears", "dark"];
+    const valid = [
+      "fire", "heart", "shock", "tears", "dark",
+      "flame", "zap", "droplets", "moon", "laugh", "skull", "handHeart", "angry", "eye"
+    ];
     if (!valid.includes(args.type)) throw new Error("Invalid reaction type.");
 
     // Check existing reaction from this session

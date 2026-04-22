@@ -202,3 +202,44 @@ export const setUsername = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Get "Void Karma" — total engagement on all confessions.
+ */
+export const getKarma = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, args) => {
+    const confessions = await ctx.db
+      .query("confessions")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    if (confessions.length === 0) return 0;
+
+    let totalKarma = 0;
+    const confessionIds = confessions.map(c => c._id);
+
+    // Sum reactions
+    for (const id of confessionIds) {
+      const reactions = await ctx.db
+        .query("reactions")
+        .withIndex("by_confession", (q) => q.eq("confessionId", id))
+        .collect();
+      totalKarma += reactions.length * 10; // 10 per reaction
+
+      const comments = await ctx.db
+        .query("comments")
+        .withIndex("by_confession", (q) => q.eq("confessionId", id))
+        .collect();
+      totalKarma += comments.length * 25; // 25 per comment
+
+      const echoes = await ctx.db
+        .query("echoes")
+        .withIndex("by_confession", (q) => q.eq("confessionId", id))
+        .collect();
+      totalKarma += echoes.length * 50; // 50 per echo
+    }
+
+    return totalKarma;
+  },
+});

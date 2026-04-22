@@ -139,3 +139,55 @@ export const sendMessage = mutation({
     });
   },
 });
+
+/**
+ * Start a DM with the author of a confession.
+ */
+export const startDMWithAuthor = mutation({
+  args: {
+    initiatorSessionId: v.string(),
+    confessionId: v.id("confessions"),
+  },
+  handler: async (ctx, args) => {
+    const confession = await ctx.db.get(args.confessionId);
+    if (!confession) throw new Error("Confession not found.");
+
+    if (confession.sessionId === args.initiatorSessionId) {
+      throw new Error("You cannot DM yourself.");
+    }
+
+    const initiator = await ctx.db
+      .query("anonUsers")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.initiatorSessionId))
+      .first();
+
+    if (!initiator || !initiator.isPremium) {
+      throw new Error("Only Premium shadows can initiate Direct Messages.");
+    }
+
+    // Check if DM already exists
+    const existingA = await ctx.db
+      .query("directMessages")
+      .withIndex("by_participantA", (q) => q.eq("participantA", args.initiatorSessionId))
+      .filter((q) => q.eq(q.field("participantB"), confession.sessionId))
+      .first();
+
+    if (existingA) return existingA._id;
+
+    const existingB = await ctx.db
+      .query("directMessages")
+      .withIndex("by_participantB", (q) => q.eq("participantB", args.initiatorSessionId))
+      .filter((q) => q.eq(q.field("participantA"), confession.sessionId))
+      .first();
+
+    if (existingB) return existingB._id;
+
+    // Create new DM
+    return await ctx.db.insert("directMessages", {
+      participantA: args.initiatorSessionId,
+      participantB: confession.sessionId,
+      createdAt: Date.now(),
+      lastMessageAt: Date.now(),
+    });
+  },
+});

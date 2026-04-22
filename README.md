@@ -176,10 +176,14 @@ Location is fetched from [ipapi.co](https://ipapi.co) — free, no API key, IP-b
 - Heat score algorithm: `engagement / (age_hours + 2)^1.8` — weighted by reactions (3×), comments (5×), views (0.1×)
 - Categories with color-coded left border
 - NSFW blur overlay (click to reveal)
-- Reactions: fire 🔥, heart ♥, shock ⚡, tears 💧, dark ☽
-- Comments inline (no page reload)
-- Share: native share API → fallback to clipboard. OG tags show snippet only.
-- Report flow → stored in `reports` table for manual review
+- Reactions: fire 🔥, heart ♥, shock ⚡, tears 💧, dark ☽, and more (10+ types)
+- Comments: Inline replies with support for **Whispers** (private to author) and **Fading Messages** (disappear over time)
+- Void Polls: Attach A/B polls to confessions with real-time results
+- Shadow Moods: Select a vibe (Guilty, Relieved, Heartbroken, etc.) to show on your post
+- Engagement: **Echoes** (reposts) to spread confessions, **Bookmarks** to save them privately
+- Void Karma: Earn points for engagement on your confessions (displayed on profile)
+- Share: Native share API → fallback to clipboard. OG tags show snippet only.
+- Report flow: Stored in `reports` table for manual review
 
 ### Content Moderation
 
@@ -198,7 +202,11 @@ Pairing algorithm:
 3. Both subscribe to their session via `useQuery(getMyChatSession)` — Convex pushes the active state in real-time
 4. Chat messages flow through `chatMessages` table, delivered via Convex subscriptions
 
-Stale sessions (waiting > 5 minutes) are cleaned up on each `joinQueue()` call.
+### Shadow Frequencies (Direct Messaging)
+
+- **Initiation**: Plus members can start 1-on-1 chats directly with confession authors.
+- **Privacy**: Authors remain anonymous; the `initiatorSessionId` is mapped to the `confessionId` on the server to prevent ID leaking.
+- **Persistence**: Messages are stored in `dmMessages` and synced across sessions if the user has synced their device.
 
 ### WebRTC Video
 
@@ -218,7 +226,7 @@ For users behind symmetric NAT (rare), you'd need a TURN server. [Metered.ca](ht
 - Streaming via SSE (Server-Sent Events) through Convex HTTP action
 - System prompt: warm, therapeutic, non-judgmental, concise
 - Context window: last 20 messages
-- **Not stored in database** — intentional. Each session is ephemeral.
+- **Persistent History**: Messages are stored in the `companionHistory` table to persist across page reloads (can be cleared manually).
 - Crisis resources link shown below the chat
 
 ### Google AdSense Integration
@@ -260,8 +268,10 @@ To activate:
 
 ## Roadmap Ideas
 
-- [ ] Direct advertiser dashboard (self-serve ads, Paystack payments)
-- [ ] Optional account creation with username
+- [x] Optional account creation with username
+- [x] Shadow Frequencies (Direct Messaging)
+- [x] Void Polls & Shadow Moods
+- [x] Void Karma & Engagement Metrics
 - [ ] Push notifications for confession replies (PWA)
 - [ ] Confession "rooms" / topic threads
 - [ ] Moderation admin dashboard

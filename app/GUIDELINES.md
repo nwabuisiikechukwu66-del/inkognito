@@ -24,7 +24,8 @@ For $3/mo, you can upgrade your experience:
 *   **Whispers**: When replying, you can choose to send a **Whisper**. These are private replies that only the author of the confession can see.
 *   **Fading Messages**: Need your words to be truly ephemeral? Enable **Fading** on your replies to have them automatically self-destruct after 24 hours.
 *   **Shadow Moods**: Set a **Vibe** (like ⚖️ Guilty or 🍃 Relieved) when you post to give the community context on how you're feeling.
-*   **Void Streaks**: Stay active! Your **Streak** shows how many consecutive days you've shared or interacted with the void. Check your profile to see your progress.
+*   **Void Streaks**: Stay active! Your **Streak** shows how many consecutive days you've shared or interacted with the void.
+*   **Void Karma**: Your total resonance in the shadows. Earn Karma every time someone reacts to, comments on, or echoes your confessions. Check your profile to see your standing.
 
 ## 🛡️ Privacy & Safety
 *   **Device Sync**: Use our secure QR-based linking system to use the same anonymous identity on your phone, tablet, and laptop.

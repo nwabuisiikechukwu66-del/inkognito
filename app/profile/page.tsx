@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
-import { User, Edit3, Loader2, MessageSquare, Flame } from "lucide-react";
+import { User, Edit3, Loader2, MessageSquare, Flame, Moon } from "lucide-react";
 import { DeviceSync } from "@/components/profile/DeviceSync";
 import { PremiumBanner } from "@/components/profile/PremiumBanner";
 import toast from "react-hot-toast";
@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 export default function ProfilePage() {
   const { sessionId } = useAnonSession();
   const user = useQuery(api.users.getBySession, { sessionId: sessionId || "" });
+  const karma = useQuery(api.users.getKarma, { sessionId: sessionId || "" });
   const myConfessions = useQuery(api.confessions.getMyConfessions, { sessionId: sessionId || "" });
   const setUsernameMutation = useMutation(api.users.setUsername);
   
@@ -65,11 +66,17 @@ export default function ProfilePage() {
             Session: {sessionId?.slice(0, 8)}...
           </p>
 
-          <div className="flex items-center justify-center gap-2">
-            <div className="bg-[var(--surface)] border border-[var(--border)] px-4 py-2 rounded-full flex items-center gap-2 shadow-inner">
+          <div className="flex items-center justify-center gap-3">
+            <div className="bg-[var(--surface)] border border-[var(--border)] px-4 py-2 rounded-full flex items-center gap-2 shadow-inner" title="Shadow Streak">
               <Flame size={16} className={user.streak && user.streak > 0 ? "text-[var(--crimson)]" : "text-[var(--dim)]"} />
               <span className="font-mono text-xs font-bold text-[var(--white)]">
-                {user.streak || 0} Day Streak
+                {user.streak || 0}
+              </span>
+            </div>
+            <div className="bg-[var(--surface)] border border-[var(--border)] px-4 py-2 rounded-full flex items-center gap-2 shadow-inner" title="Void Karma">
+              <Moon size={16} className="text-[var(--ash)]" />
+              <span className="font-mono text-xs font-bold text-[var(--white)]">
+                {karma || 0}
               </span>
             </div>
           </div>

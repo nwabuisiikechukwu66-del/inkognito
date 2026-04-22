@@ -70,7 +70,7 @@ export const getFeed = query({
     } else {
       feedQuery = ctx.db
         .query("confessions")
-        .fullTableScan()
+        .withIndex("by_created")
         .filter((q) => q.eq(q.field("isHidden"), false));
     }
 
@@ -289,6 +289,24 @@ export const getNotifications = query({
       )
     );
 
+    const echoes = await Promise.all(
+      confessionIds.map((id) =>
+        ctx.db
+          .query("echoes")
+          .withIndex("by_confession", (q) => q.eq("confessionId", id))
+          .collect()
+      )
+    );
+
+    const pollVotes = await Promise.all(
+      confessionIds.map((id) =>
+        ctx.db
+          .query("pollVotes")
+          .withIndex("by_confession", (q) => q.eq("confessionId", id))
+          .collect()
+      )
+    );
+
     // Flatten and enrich
     const notifications = [
       ...reactions.flat().filter((r) => r.sessionId !== args.sessionId).map((r) => ({
@@ -304,6 +322,19 @@ export const getNotifications = query({
         confessionId: c.confessionId,
         content: c.content,
         createdAt: c.createdAt,
+      })),
+      ...echoes.flat().filter((e) => e.sessionId !== args.sessionId).map((e) => ({
+        type: "echo",
+        id: e._id,
+        confessionId: e.confessionId,
+        createdAt: e.createdAt,
+      })),
+      ...pollVotes.flat().filter((v) => v.sessionId !== args.sessionId).map((v) => ({
+        type: "pollVote",
+        id: v._id,
+        confessionId: v.confessionId,
+        option: v.option,
+        createdAt: v.createdAt,
       })),
     ].sort((a, b) => b.createdAt - a.createdAt).slice(0, 50);
 
@@ -709,5 +740,61 @@ export const report = mutation({
       status: "pending",
       createdAt: Date.now(),
     });
+  },
+});
+/**
+ * Seed sample data (Internal use).
+ */
+export const seed = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("confessions").take(1);
+    if (existing.length > 0) return;
+
+    const samples = [
+      {
+        content: "I once accidentally sent a 'Love you' text to my boss instead of my partner. I had to pretend it was meant for my cat named 'Boss'.",
+        category: "funny",
+        mood: "guilty",
+        sessionId: "seed-session-1",
+        isNSFW: false,
+        heatScore: 10,
+        viewCount: 100,
+        isModerated: true,
+        isFlagged: false,
+        isHidden: false,
+        createdAt: Date.now() - 1000 * 60 * 60,
+      },
+      {
+        content: "I've been skipping the gym for 3 months but still post 'grind' stories using old photos. The guilt is real but the laziness is stronger.",
+        category: "funny",
+        mood: "relieved",
+        sessionId: "seed-session-2",
+        isNSFW: false,
+        heatScore: 5,
+        viewCount: 50,
+        isModerated: true,
+        isFlagged: false,
+        isHidden: false,
+        createdAt: Date.now() - 1000 * 60 * 120,
+      },
+      {
+        content: "I'm in love with my best friend's sibling. It's tearing me apart because I don't want to ruin the friendship, but I can't stop thinking about them.",
+        category: "relationship",
+        mood: "sad",
+        sessionId: "seed-session-3",
+        isNSFW: false,
+        heatScore: 25,
+        viewCount: 200,
+        isModerated: true,
+        isFlagged: false,
+        isHidden: false,
+        createdAt: Date.now() - 1000 * 60 * 180,
+      }
+    ];
+
+    for (const s of samples) {
+      await ctx.db.insert("confessions", s);
+    }
   },
 });

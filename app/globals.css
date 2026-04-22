@@ -185,6 +185,14 @@ body::after {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Feed column width */
 .feed-width {
   max-width: 680px;

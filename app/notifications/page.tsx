@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
-import { Bell, Heart, MessageSquare, Flame, Zap, Moon, Smile, Skull, Eye, HeartHandshake, Frown, Loader2 } from "lucide-react";
+import { Bell, Heart, MessageSquare, Flame, Zap, Moon, Smile, Skull, Eye, HeartHandshake, Frown, Loader2, Repeat, BarChart2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 
@@ -44,8 +44,11 @@ export default function NotificationsPage() {
         ) : notifications.length > 0 ? (
           notifications.map((n) => {
             const isReaction = n.type === "reaction";
+            const isEcho = n.type === "echo";
+            const isPollVote = n.type === "pollVote";
             const reactionType = isReaction ? (n as any).reactionType : undefined;
-            const content = !isReaction ? (n as any).content : undefined;
+            const content = n.type === "comment" ? (n as any).content : undefined;
+            const option = isPollVote ? (n as any).option : undefined;
             const ReactionIcon = isReaction ? (REACTION_ICONS[reactionType] || Heart) : null;
 
             return (
@@ -62,6 +65,14 @@ export default function NotificationsPage() {
                           <div className="scale-75"><ReactionIcon size={20} className="fill-current" /></div>
                         )}
                       </div>
+                    ) : isEcho ? (
+                      <div className="w-8 h-8 rounded-full bg-[var(--deep)] border border-[var(--crimson-dim)] flex items-center justify-center text-[var(--crimson)]">
+                        <Repeat size={16} />
+                      </div>
+                    ) : isPollVote ? (
+                      <div className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--ash)]">
+                        <BarChart2 size={16} />
+                      </div>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-[#1e1b4b] flex items-center justify-center text-[#8b5cf6]">
                         <MessageSquare size={16} className="fill-current" />
@@ -74,6 +85,10 @@ export default function NotificationsPage() {
                       <p className="text-sm text-[var(--white)] font-medium">
                         {isReaction ? (
                           <>Someone reacted with <span className="text-[var(--crimson)] font-mono text-[10px] uppercase border border-[var(--crimson-dim)] px-1 mx-1">{reactionType}</span> to your confession</>
+                        ) : isEcho ? (
+                          <>Someone <span className="text-[var(--crimson)] font-mono text-[10px] uppercase border border-[var(--crimson-dim)] px-1 mx-1">echoed</span> your confession</>
+                        ) : isPollVote ? (
+                          <>Someone voted <span className="text-[var(--white)] font-mono text-[10px] uppercase border border-[var(--border)] px-1 mx-1">Option {option}</span> on your poll</>
                         ) : (
                           <>Someone replied to your confession</>
                         )}

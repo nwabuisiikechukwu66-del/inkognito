@@ -29,6 +29,7 @@ import { clsx } from "clsx";
 import toast from "react-hot-toast";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 /* ── Types ─────────────────────────────────────────────────── */
 interface ConfessionData {
@@ -113,6 +114,24 @@ export function ConfessionCard({ confession }: Props) {
   });
 
   /* ── Handlers ─────────────────────────────────────────────── */
+  const startDM = useMutation(api.dms.startDMWithAuthor);
+  const router = useRouter();
+
+  async function handleDM() {
+    if (!sessionId) {
+      toast.error("Connecting to the void...");
+      return;
+    }
+    const tid = toast.loading("Opening shadow frequency...");
+    try {
+      const dmId = await startDM({ initiatorSessionId: sessionId, confessionId: confession._id });
+      toast.success("Frequency open.", { id: tid });
+      router.push(`/chat/${dmId}`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not open frequency.", { id: tid });
+    }
+  }
+
   async function handleReact(type: string) {
     if (!sessionId) {
       toast.error("Connecting to the void... please wait.");
@@ -247,9 +266,18 @@ export function ConfessionCard({ confession }: Props) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             {/* Author */}
-            <span className="font-mono text-[10px] text-[var(--dim)] uppercase tracking-widest font-bold">
-              {confession.authorUsername ? confession.authorUsername : "Anon"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-[var(--dim)] uppercase tracking-widest font-bold">
+                {confession.authorUsername ? confession.authorUsername : "Anon"}
+              </span>
+              <button
+                onClick={handleDM}
+                className="text-[var(--muted)] hover:text-[var(--crimson)] transition-colors p-1"
+                title="Shadow Message"
+              >
+                <MessageSquare size={12} />
+              </button>
+            </div>
 
             {/* Category badge */}
             <span
@@ -371,9 +399,10 @@ export function ConfessionCard({ confession }: Props) {
           </div>
         )}
 
-        {/* ── Reaction bar ────────────────────────────────── */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-1.5 flex-wrap">
+        {/* ── Action Bar (Reactions + Actions) ────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-8 pt-4 border-t border-[var(--border)]/50">
+          {/* Reactions - Horizontal scroll on mobile */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap">
             {REACTIONS.map((r) => {
               const Icon = r.icon;
               const active = myReaction === r.type;
@@ -384,7 +413,7 @@ export function ConfessionCard({ confession }: Props) {
                   onClick={() => handleReact(r.type)}
                   title={r.label}
                   className={clsx(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-all duration-200 border",
+                    "flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full transition-all duration-200 border",
                     active
                       ? "border-[var(--crimson-dim)] bg-[var(--crimson-dim)] text-[var(--white)] shadow-[0_0_10px_rgba(196,30,58,0.3)]"
                       : "border-[var(--border)] bg-[var(--surface)] text-[var(--dim)] hover:border-[var(--crimson-dim)] hover:text-[var(--crimson)]"
@@ -401,52 +430,52 @@ export function ConfessionCard({ confession }: Props) {
             })}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-3">
+          {/* Action buttons - Spaced evenly on mobile */}
+          <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-4 px-2 sm:px-0">
             <button
               onClick={() => setShowComments(!showComments)}
               className={clsx(
-                "flex items-center gap-1.5 transition-colors",
+                "flex items-center gap-2 transition-colors",
                 showComments ? "text-[var(--white)]" : "text-[var(--dim)] hover:text-[var(--ash)]"
               )}
             >
-              <MessageCircle size={13} className={clsx(showComments && "text-[var(--crimson)]")} />
+              <MessageCircle size={15} className={clsx(showComments && "text-[var(--crimson)]")} />
               <span className="font-mono text-[10px]">{confession.commentCount}</span>
             </button>
 
             <button
               onClick={handleEcho}
               className={clsx(
-                "flex items-center gap-1.5 transition-colors",
+                "flex items-center gap-2 transition-colors",
                 echoed ? "text-[var(--white)]" : "text-[var(--dim)] hover:text-[var(--ash)]"
               )}
               title="Echo"
             >
-              <Repeat size={13} className={clsx(echoed && "text-[var(--crimson)]")} />
+              <Repeat size={15} className={clsx(echoed && "text-[var(--crimson)]")} />
               <span className="font-mono text-[10px]">{echoCount}</span>
             </button>
 
             <button
               onClick={handleBookmark}
               className={clsx(
-                "flex items-center gap-1.5 transition-colors",
+                "flex items-center gap-2 transition-colors",
                 bookmarked ? "text-[var(--crimson)]" : "text-[var(--dim)] hover:text-[var(--ash)]"
               )}
               title="Bookmark"
             >
-              <Bookmark size={13} fill={bookmarked ? "currentColor" : "none"} />
+              <Bookmark size={15} fill={bookmarked ? "currentColor" : "none"} />
             </button>
 
             <div className="relative">
               <button
                 onClick={() => setShowShareMenu(!showShareMenu)}
                 className={clsx(
-                  "flex items-center gap-1.5 transition-colors",
+                  "flex items-center gap-2 transition-colors",
                   confession.shareCount && confession.shareCount > 0 ? "text-[var(--ash)]" : "text-[var(--dim)] hover:text-[var(--ash)]"
                 )}
                 title="Share"
               >
-                <Share2 size={13} />
+                <Share2 size={15} />
                 {(confession.shareCount ?? 0) > 0 && (
                   <span className="font-mono text-[10px]">{confession.shareCount}</span>
                 )}
@@ -476,12 +505,13 @@ export function ConfessionCard({ confession }: Props) {
                 )}
               </AnimatePresence>
             </div>
+
             <button
               onClick={handleReport}
-              className="text-[var(--dim)] hover:text-[var(--crimson)] transition-colors opacity-0 group-hover:opacity-100"
+              className="text-[var(--dim)] hover:text-[var(--crimson)] transition-colors group-hover:opacity-100"
               title="Report"
             >
-              <Flag size={12} />
+              <Flag size={14} />
             </button>
           </div>
         </div>

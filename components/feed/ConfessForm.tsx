@@ -33,6 +33,15 @@ const CATEGORIES = [
   { value: "other",        label: "Other"         },
 ];
 
+const MOODS = [
+  { id: "guilty", label: "Guilty", icon: "⚖️" },
+  { id: "relieved", label: "Relieved", icon: "🍃" },
+  { id: "seeking_advice", label: "Seeking Advice", icon: "💡" },
+  { id: "just_venting", label: "Just Venting", icon: "😤" },
+  { id: "heartbroken", label: "Heartbroken", icon: "💔" },
+  { id: "proud", label: "Proud", icon: "✨" },
+];
+
 const MAX_CHARS = 2000;
 
 export function ConfessForm() {
@@ -44,6 +53,13 @@ export function ConfessForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [postedId, setPostedId] = useState<string | null>(null);
+
+  // Poll state
+  const [hasPoll, setHasPoll] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [optionA, setOptionA] = useState("");
+  const [optionB, setOptionB] = useState("");
+  const [selectedMood, setSelectedMood] = useState<string | undefined>();
 
   const postMutation = useMutation(api.confessions.post);
 
@@ -64,6 +80,12 @@ export function ConfessForm() {
         isNSFW,
         country: country ?? undefined,
         city: city ?? undefined,
+        poll: hasPoll ? {
+          question: pollQuestion.trim(),
+          optionA: optionA.trim() || "Yes",
+          optionB: optionB.trim() || "No",
+        } : undefined,
+        mood: selectedMood,
       });
 
       setPostedId(id);
@@ -230,6 +252,81 @@ export function ConfessForm() {
                 </>
               )}
             </button>
+          </div>
+        </div>
+
+        {/* Poll Builder Section */}
+        <div className="border-t border-[var(--border)] p-4 bg-[var(--deep)]/50">
+          <button 
+            onClick={() => setHasPoll(!hasPoll)}
+            className={clsx(
+              "flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest transition-colors mb-4",
+              hasPoll ? "text-[var(--crimson)]" : "text-[var(--dim)] hover:text-[var(--ash)]"
+            )}
+          >
+            <div className={clsx(
+              "w-3 h-3 border border-current flex items-center justify-center",
+              hasPoll && "bg-[var(--crimson)]"
+            )}>
+              {hasPoll && <Check size={8} className="text-white" />}
+            </div>
+            Attach Void Poll
+          </button>
+
+          <AnimatePresence>
+            {hasPoll && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden space-y-4"
+              >
+                <input 
+                  value={pollQuestion}
+                  onChange={(e) => setPollQuestion(e.target.value)}
+                  placeholder="The question (e.g., Am I the asshole?)"
+                  className="w-full bg-[var(--black)] border border-[var(--border)] px-4 py-2 text-sm text-[var(--paper)] focus:border-[var(--dim)] transition-colors placeholder:text-[var(--muted)]"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <input 
+                    value={optionA}
+                    onChange={(e) => setOptionA(e.target.value)}
+                    placeholder="Option A (Default: Yes)"
+                    className="bg-[var(--black)] border border-[var(--border)] px-4 py-2 text-sm text-[var(--paper)] focus:border-[var(--dim)] transition-colors placeholder:text-[var(--muted)]"
+                  />
+                  <input 
+                    value={optionB}
+                    onChange={(e) => setOptionB(e.target.value)}
+                    placeholder="Option B (Default: No)"
+                    className="bg-[var(--black)] border border-[var(--border)] px-4 py-2 text-sm text-[var(--paper)] focus:border-[var(--dim)] transition-colors placeholder:text-[var(--muted)]"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Mood Selector */}
+        <div className="border-t border-[var(--border)] p-4 bg-[var(--black)]/30">
+          <p className="font-mono text-[9px] text-[var(--dim)] uppercase tracking-widest mb-3 px-1">
+            Current Vibe (Optional)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {MOODS.map((mood) => (
+              <button
+                key={mood.id}
+                onClick={() => setSelectedMood(selectedMood === mood.id ? undefined : mood.id)}
+                className={clsx(
+                  "px-3 py-1.5 flex items-center gap-2 border transition-all duration-150 rounded-sm",
+                  selectedMood === mood.id
+                    ? "border-[var(--white)] text-[var(--white)] bg-[var(--deep)]"
+                    : "border-[var(--border)] text-[var(--dim)] hover:border-[var(--muted)] hover:text-[var(--ash)]"
+                )}
+              >
+                <span className="text-sm">{mood.icon}</span>
+                <span className="font-mono text-[9px] uppercase tracking-wider">{mood.label}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>

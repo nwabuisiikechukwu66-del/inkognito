@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
-import { Home, Compass, PenSquare, MessagesSquare, Smile, User, Settings, Bell } from "lucide-react";
+import { Home, Compass, PenSquare, MessagesSquare, Smile, User, Settings, Bell, Bookmark } from "lucide-react";
 import { clsx } from "clsx";
 import { motion } from "framer-motion";
 
@@ -23,6 +23,7 @@ const TOP_LINKS = [
 
 const BOTTOM_LINKS = [
   { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/bookmarks", label: "Bookmarks", icon: Bookmark },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

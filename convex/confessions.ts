@@ -15,7 +15,7 @@
  * - report        : Report a confession for moderation
  */
 
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -55,6 +55,7 @@ export const getFeed = query({
     category: v.optional(v.string()),
     cursor: v.optional(v.number()),
     limit: v.optional(v.number()),
+    sessionId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
@@ -117,15 +118,44 @@ export const getFeed = query({
           .withIndex("by_session", (q) => q.eq("sessionId", c.sessionId))
           .first();
 
+        // ── Poll Data ──
+        let pollResults;
+        if (c.poll) {
+          const votes = await ctx.db
+            .query("pollVotes")
+            .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
+            .collect();
+          const countA = votes.filter(v => v.option === "A").length;
+          const countB = votes.filter(v => v.option === "B").length;
+          const userVote = args.sessionId ? votes.find(v => v.sessionId === args.sessionId)?.option : undefined;
+          pollResults = { countA, countB, total: votes.length, userVote };
+        }
+
+        // ── Comment Count (Publicly filtered) ──
+        // Only count normal comments for the public count, or all if you're the author?
+        // Let's count all comments the user can see.
+        const visibleComments = comments.filter(comm => {
+          if (comm.type === "whisper") {
+            return args.sessionId === comm.sessionId || args.sessionId === c.sessionId;
+          }
+          return true;
+        });
+
         // Remove location data before sending to client for privacy
         const { country, city, ...safeConfession } = c;
 
         return {
           ...safeConfession,
           authorUsername: author?.username,
+          authorIsPremium: author?.isPremium ?? false,
           reactionCount: reactions.length,
           reactionCounts,
-          commentCount: comments.length,
+          commentCount: visibleComments.length,
+          pollResults,
+          shareCount: c.shareCount ?? 0,
+          echoCount: (await ctx.db.query("echoes").withIndex("by_confession", (q) => q.eq("confessionId", c._id)).collect()).length,
+          isBookmarked: args.sessionId ? (await ctx.db.query("bookmarks").withIndex("by_session_confession", (q) => q.eq("sessionId", args.sessionId!).eq("confessionId", c._id)).first() !== null) : false,
+          isEchoed: args.sessionId ? (await ctx.db.query("echoes").withIndex("by_session_confession", (q) => q.eq("sessionId", args.sessionId!).eq("confessionId", c._id)).first() !== null) : false,
         };
       })
     );
@@ -144,7 +174,10 @@ export const getFeed = query({
  * Get a single confession by ID, enriched with all reactions and comments.
  */
 export const getById = query({
-  args: { id: v.id("confessions") },
+  args: { 
+    id: v.id("confessions"),
+    sessionId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const confession = await ctx.db.get(args.id);
     if (!confession || confession.isHidden) return null;
@@ -171,15 +204,39 @@ export const getById = query({
       .withIndex("by_session", (q) => q.eq("sessionId", confession.sessionId))
       .first();
 
+    // ── Poll Data ──
+    let pollResults;
+    if (confession.poll) {
+      const votes = await ctx.db
+        .query("pollVotes")
+        .withIndex("by_confession", (q) => q.eq("confessionId", args.id))
+        .collect();
+      const countA = votes.filter(v => v.option === "A").length;
+      const countB = votes.filter(v => v.option === "B").length;
+      const userVote = args.sessionId ? votes.find(v => v.sessionId === args.sessionId)?.option : undefined;
+      pollResults = { countA, countB, total: votes.length, userVote };
+    }
+
+    // ── Filter Whispers ──
+    const visibleComments = comments.filter(c => {
+      if (c.type === "whisper") {
+        return args.sessionId === c.sessionId || args.sessionId === confession.sessionId;
+      }
+      return true;
+    });
+
     // Remove location data for privacy
     const { country, city, ...safeConfession } = confession;
 
     return {
       ...safeConfession,
       authorUsername: author?.username,
+      authorIsPremium: author?.isPremium ?? false,
       reactionCount: reactions.length,
       reactionCounts,
-      comments,
+      comments: visibleComments,
+      pollResults,
+      shareCount: confession.shareCount ?? 0,
     };
   },
 });
@@ -195,6 +252,62 @@ export const getMyConfessions = query({
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .order("desc")
       .take(50);
+  },
+});
+
+/**
+ * Get recent interactions (reactions/comments) on user's confessions.
+ */
+export const getNotifications = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, args) => {
+    // 1. Get user's confessions
+    const myConfessions = await ctx.db
+      .query("confessions")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    const confessionIds = myConfessions.map((c) => c._id);
+
+    // 2. Get reactions on those confessions (excluding own)
+    const reactions = await Promise.all(
+      confessionIds.map((id) =>
+        ctx.db
+          .query("reactions")
+          .withIndex("by_confession", (q) => q.eq("confessionId", id))
+          .collect()
+      )
+    );
+
+    // 3. Get comments on those confessions (excluding own)
+    const comments = await Promise.all(
+      confessionIds.map((id) =>
+        ctx.db
+          .query("comments")
+          .withIndex("by_confession", (q) => q.eq("confessionId", id))
+          .collect()
+      )
+    );
+
+    // Flatten and enrich
+    const notifications = [
+      ...reactions.flat().filter((r) => r.sessionId !== args.sessionId).map((r) => ({
+        type: "reaction",
+        id: r._id,
+        reactionType: r.type,
+        confessionId: r.confessionId,
+        createdAt: r.createdAt,
+      })),
+      ...comments.flat().filter((c) => c.sessionId !== args.sessionId).map((c) => ({
+        type: "comment",
+        id: c._id,
+        confessionId: c.confessionId,
+        content: c.content,
+        createdAt: c.createdAt,
+      })),
+    ].sort((a, b) => b.createdAt - a.createdAt).slice(0, 50);
+
+    return notifications;
   },
 });
 
@@ -214,6 +327,12 @@ export const post = mutation({
     mediaUrl: v.optional(v.string()),
     country: v.optional(v.string()),
     city: v.optional(v.string()),
+    poll: v.optional(v.object({
+      question: v.string(),
+      optionA: v.string(),
+      optionB: v.string(),
+    })),
+    mood: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // ── Validation ──────────────────────────────────────────
@@ -246,13 +365,147 @@ export const post = mutation({
       city: args.city,
       heatScore: 0,
       viewCount: 0,
-      isModerated: true, // Passed basic check; deep check async
+      shareCount: 0,
+      isModerated: true,
       isFlagged: false,
       isHidden: false,
       createdAt: now,
+      poll: args.poll,
+      mood: args.mood,
     });
 
     return { id };
+  },
+});
+
+/**
+ * Toggle bookmark for a confession.
+ */
+export const toggleBookmark = mutation({
+  args: {
+    confessionId: v.id("confessions"),
+    sessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("bookmarks")
+      .withIndex("by_session_confession", (q) =>
+        q.eq("sessionId", args.sessionId).eq("confessionId", args.confessionId)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.delete(existing._id);
+      return { bookmarked: false };
+    } else {
+      await ctx.db.insert("bookmarks", {
+        sessionId: args.sessionId,
+        confessionId: args.confessionId,
+        createdAt: Date.now(),
+      });
+      return { bookmarked: true };
+    }
+  },
+});
+
+/**
+ * Toggle Echo (repost) for a confession.
+ */
+export const toggleEcho = mutation({
+  args: {
+    confessionId: v.id("confessions"),
+    sessionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("echoes")
+      .withIndex("by_session_confession", (q) =>
+        q.eq("sessionId", args.sessionId).eq("confessionId", args.confessionId)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.delete(existing._id);
+    } else {
+      await ctx.db.insert("echoes", {
+        sessionId: args.sessionId,
+        confessionId: args.confessionId,
+        createdAt: Date.now(),
+      });
+    }
+
+    // Update heat score
+    const confession = await ctx.db.get(args.confessionId);
+    if (confession) {
+      const echoes = await ctx.db
+        .query("echoes")
+        .withIndex("by_confession", (q) => q.eq("confessionId", args.confessionId))
+        .collect();
+      
+      // Echoes weigh heavily on heat score
+      const reactions = await ctx.db
+        .query("reactions")
+        .withIndex("by_confession", (q) => q.eq("confessionId", args.confessionId))
+        .collect();
+      const comments = await ctx.db
+        .query("comments")
+        .withIndex("by_confession", (q) => q.eq("confessionId", args.confessionId))
+        .collect();
+
+      const ageHours = (Date.now() - confession.createdAt) / (1000 * 60 * 60);
+      const engagement = reactions.length * 3 + comments.length * 5 + confession.viewCount * 0.1 + echoes.length * 10;
+      const gravity = 1.8;
+      const newHeat = engagement / Math.pow(ageHours + 2, gravity);
+      
+      await ctx.db.patch(args.confessionId, { heatScore: newHeat });
+    }
+
+    return { echoed: !existing };
+  },
+});
+
+/**
+ * Get user's bookmarked confessions.
+ */
+export const getBookmarks = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, args) => {
+    const bookmarks = await ctx.db
+      .query("bookmarks")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .order("desc")
+      .collect();
+
+    const confessions = await Promise.all(
+      bookmarks.map(async (b) => {
+        const c = await ctx.db.get(b.confessionId);
+        if (!c || c.isHidden) return null;
+
+        // Reuse enrichment logic (simplified for bookmarks)
+        const reactions = await ctx.db
+          .query("reactions")
+          .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
+          .collect();
+        const comments = await ctx.db
+          .query("comments")
+          .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
+          .collect();
+
+        const reactionCounts: Record<string, number> = {};
+        for (const r of reactions) {
+          reactionCounts[r.type] = (reactionCounts[r.type] ?? 0) + 1;
+        }
+
+        return {
+          ...c,
+          reactionCount: reactions.length,
+          reactionCounts,
+          commentCount: comments.length,
+        };
+      })
+    );
+
+    return confessions.filter((c) => c !== null);
   },
 });
 
@@ -354,18 +607,88 @@ export const addComment = mutation({
     confessionId: v.id("confessions"),
     sessionId: v.string(),
     content: v.string(),
+    type: v.optional(v.string()), // "normal" | "whisper"
+    isFading: v.optional(v.boolean()), // true = delete in 24h
   },
   handler: async (ctx, args) => {
     if (!args.content.trim()) throw new Error("Comment cannot be empty.");
     if (args.content.length > 500) throw new Error("Max 500 characters.");
 
+    const now = Date.now();
+    let expiresAt;
+    if (args.isFading) {
+      expiresAt = now + (24 * 60 * 60 * 1000); // 24 hours
+    }
+
     await ctx.db.insert("comments", {
       confessionId: args.confessionId,
       sessionId: args.sessionId,
       content: args.content.trim(),
+      type: args.type ?? "normal",
+      expiresAt,
       isHidden: false,
+      createdAt: now,
+    });
+  },
+});
+
+/**
+ * Vote in a poll.
+ */
+export const voteInPoll = mutation({
+  args: {
+    confessionId: v.id("confessions"),
+    sessionId: v.string(),
+    option: v.string(), // "A" | "B"
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("pollVotes")
+      .withIndex("by_session_confession", (q) => 
+        q.eq("sessionId", args.sessionId).eq("confessionId", args.confessionId)
+      )
+      .first();
+    
+    if (existing) throw new Error("You have already voted.");
+
+    await ctx.db.insert("pollVotes", {
+      confessionId: args.confessionId,
+      sessionId: args.sessionId,
+      option: args.option,
       createdAt: Date.now(),
     });
+  },
+});
+
+/**
+ * Increment share count.
+ */
+export const incrementShare = mutation({
+  args: { confessionId: v.id("confessions") },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.confessionId);
+    if (!c) return;
+    await ctx.db.patch(args.confessionId, {
+      shareCount: (c.shareCount ?? 0) + 1,
+    });
+  },
+});
+
+/**
+ * Internal: cleanup fading messages.
+ */
+export const cleanupFadingMessages = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const expired = await ctx.db
+      .query("comments")
+      .filter((q) => q.lt(q.field("expiresAt"), now))
+      .collect();
+    
+    for (const msg of expired) {
+      await ctx.db.delete(msg._id);
+    }
   },
 });
 

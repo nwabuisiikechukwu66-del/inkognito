@@ -14,6 +14,8 @@
  * - directMessages: 1-on-1 private messaging sessions
  * - dmMessages    : Messages within direct messages
  * - syncTokens    : Ephemeral tokens for device linking
+ * - bookmarks     : User saved confessions
+ * - echoes        : Reposted confessions (unique name: Echo)
  *
  * Note: No email, no personal data beyond session UUID + rough location.
  */
@@ -40,6 +42,7 @@ export default defineSchema({
     paymentProvider: v.optional(v.string()), // 'paystack' | 'polar'
     chatAttemptsToday: v.optional(v.number()),
     lastChatReset: v.optional(v.number()),
+    streak: v.optional(v.number()),
   }).index("by_session", ["sessionId"])
     .index("by_username", ["username"]),
 
@@ -57,6 +60,13 @@ export default defineSchema({
     isModerated: v.boolean(),      // Passed automated moderation
     isFlagged: v.boolean(),        // Flagged by users for review
     isHidden: v.boolean(),         // Hidden by admin
+    poll: v.optional(v.object({
+      question: v.string(),
+      optionA: v.string(),
+      optionB: v.string(),
+    })),
+    mood: v.optional(v.string()), // e.g., "guilty", "relieved", "seeking_advice"
+    shareCount: v.optional(v.number()),
     createdAt: v.number(),
   }).index("by_created", ["createdAt"])
     .index("by_heat", ["heatScore"])
@@ -68,6 +78,8 @@ export default defineSchema({
     confessionId: v.id("confessions"),
     sessionId: v.string(),
     content: v.string(),           // Max 500 chars
+    type: v.optional(v.string()),  // "normal" | "whisper"
+    expiresAt: v.optional(v.number()), // For fading messages
     isHidden: v.boolean(),
     createdAt: v.number(),
   }).index("by_confession", ["confessionId"])
@@ -162,4 +174,29 @@ export default defineSchema({
     expiresAt: v.number(),
     isConsumed: v.boolean(),
   }).index("by_token", ["token"]),
+
+  /* ── Bookmarks ───────────────────────────────────────────── */
+  bookmarks: defineTable({
+    sessionId: v.string(),
+    confessionId: v.id("confessions"),
+    createdAt: v.number(),
+  }).index("by_session", ["sessionId"])
+    .index("by_session_confession", ["sessionId", "confessionId"]),
+
+  /* ── Echoes (Reposts) ────────────────────────────────────── */
+  echoes: defineTable({
+    sessionId: v.string(),
+    confessionId: v.id("confessions"),
+    createdAt: v.number(),
+  }).index("by_confession", ["confessionId"])
+    .index("by_session_confession", ["sessionId", "confessionId"]),
+
+  /* ── Void Poll Votes ─────────────────────────────────────── */
+  pollVotes: defineTable({
+    confessionId: v.id("confessions"),
+    sessionId: v.string(),
+    option: v.string(), // "A" | "B"
+    createdAt: v.number(),
+  }).index("by_confession", ["confessionId"])
+    .index("by_session_confession", ["sessionId", "confessionId"]),
 });

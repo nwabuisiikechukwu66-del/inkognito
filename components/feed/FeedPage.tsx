@@ -14,6 +14,7 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import { ConfessionCard } from "./ConfessionCard";
 import { ConfessionSkeleton } from "./ConfessionSkeleton";
 import { clsx } from "clsx";
@@ -33,7 +34,8 @@ const CATEGORIES = [
 ];
 
 export function FeedPage() {
-  const [sortBy, setSortBy] = useState<"recent" | "hot">("recent");
+  const { sessionId } = useAnonSession();
+  const [sortBy, setSortBy] = useState("recent");
   const [category, setCategory] = useState("all");
 
   // Fetch feed from Convex — auto-updates in real time
@@ -41,6 +43,7 @@ export function FeedPage() {
     sortBy,
     category,
     limit: 20,
+    sessionId: sessionId || undefined,
   });
 
   const isLoading = result === undefined;

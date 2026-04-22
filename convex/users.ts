@@ -56,11 +56,25 @@ export const upsertSession = mutation({
       .first();
 
     const now = Date.now();
+    const today = new Date(now).toISOString().split('T')[0];
 
     if (existing) {
+      const lastSeen = new Date(existing.lastSeenAt).toISOString().split('T')[0];
+      let newStreak = existing.streak ?? 1;
+
+      if (lastSeen !== today) {
+        const diffDays = Math.floor((now - existing.lastSeenAt) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+          newStreak += 1;
+        } else if (diffDays > 1) {
+          newStreak = 1;
+        }
+      }
+
       // Update last seen + location if provided
       await ctx.db.patch(existing._id, {
         lastSeenAt: now,
+        streak: newStreak,
         ...(args.country && { country: args.country }),
         ...(args.city && { city: args.city }),
       });
@@ -76,6 +90,7 @@ export const upsertSession = mutation({
       createdAt: now,
       lastSeenAt: now,
       isBanned: false,
+      streak: 1,
     });
   },
 });

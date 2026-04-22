@@ -89,7 +89,7 @@ export default function RootLayout({
                 </div>
 
                 {/* Page content */}
-                <main className="flex-1 relative">{children}</main>
+                <main className="flex-1 relative pb-24 md:pb-0">{children}</main>
 
                 {/* Site footer — required for AdSense (Terms + Privacy links) */}
                 <Footer />

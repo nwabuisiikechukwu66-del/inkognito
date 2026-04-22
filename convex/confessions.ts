@@ -81,6 +81,11 @@ export const getFeed = query({
       // Sort by heatScore client-side (Convex doesn't support complex sort indexes)
       confessions.sort((a, b) => b.heatScore - a.heatScore);
       confessions = confessions.slice(0, limit);
+    } else if (sortBy === "random") {
+      // Fetch top 100 recent and shuffle
+      confessions = await feedQuery.order("desc").take(100);
+      confessions.sort(() => Math.random() - 0.5);
+      confessions = confessions.slice(0, limit);
     } else {
       // Recent: use createdAt cursor for pagination
       if (args.cursor) {

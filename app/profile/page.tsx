@@ -53,13 +53,23 @@ export default function ProfilePage() {
             <h1 className="text-3xl font-display font-bold text-[var(--white)]">
               {user.username || "Anonymous User"}
             </h1>
-            {user.isPremium && !isEditing && (
-              <button 
-                onClick={() => { setIsEditing(true); setNewUsername(user.username || ""); }}
-                className="p-1 hover:bg-[var(--surface)] rounded text-[var(--dim)] hover:text-[var(--white)] transition-colors"
+            {user.isPremium ? (
+              !isEditing && (
+                <button 
+                  onClick={() => { setIsEditing(true); setNewUsername(user.username || ""); }}
+                  className="p-1 hover:bg-[var(--surface)] rounded text-[var(--dim)] hover:text-[var(--white)] transition-colors"
+                  title="Change Username"
+                >
+                  <Edit3 size={16} />
+                </button>
+              )
+            ) : (
+              <div 
+                className="p-1 text-[var(--muted)] opacity-50 cursor-help"
+                title="Custom usernames are for Plus members"
               >
-                <Edit3 size={16} />
-              </button>
+                <Edit3 size={16} className="opacity-50" />
+              </div>
             )}
           </div>
           <p className="text-[var(--dim)] font-mono text-[10px] uppercase tracking-[0.2em] mb-3">

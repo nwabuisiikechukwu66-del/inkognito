@@ -38,6 +38,16 @@ export const checkUsername = query({
 
 /* ─── Mutations ───────────────────────────────────────────── */
 
+const ADJECTIVES = ["Shadow", "Void", "Silent", "Midnight", "Ethereal", "Ghostly", "Abyssal", "Ink", "Muted", "Secret"];
+const NOUNS = ["Walker", "Whisperer", "Seeker", "Ghost", "Stray", "Shadow", "Echo", "Void", "Soul", "Trace"];
+
+function generateRandomUsername() {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const num = Math.floor(Math.random() * 9999);
+  return `${adj}${noun}${num}`;
+}
+
 /**
  * Upsert an anonymous session.
  * Called on every app load — creates if new, updates lastSeenAt if existing.
@@ -84,6 +94,7 @@ export const upsertSession = mutation({
     // Create new anon user
     return ctx.db.insert("anonUsers", {
       sessionId: args.sessionId,
+      username: generateRandomUsername(), // Assign random name by default
       country: args.country,
       city: args.city,
       deviceFingerprint: args.deviceFingerprint,

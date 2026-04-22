@@ -22,28 +22,18 @@ import { clsx } from "clsx";
 import { Flame, Clock, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 
-/* ── Categories ────────────────────────────────────────────── */
-const CATEGORIES = [
-  { value: "all", label: "All" },
-  { value: "sexual", label: "Sexual" },
-  { value: "relationship", label: "Relationships" },
-  { value: "dark", label: "Dark" },
-  { value: "work", label: "Work" },
-  { value: "family", label: "Family" },
-  { value: "funny", label: "Funny" },
-  { value: "other", label: "Other" },
-];
+/* ── FeedPage Component ────────────────────────────────────────── */
 
 export function FeedPage() {
   const { sessionId } = useAnonSession();
-  const [sortBy, setSortBy] = useState("recent");
+  const [sortBy, setSortBy] = useState("random");
   const [category, setCategory] = useState("all");
 
   // Fetch feed from Convex — auto-updates in real time
   const result = useQuery(api.confessions.getFeed, {
     sortBy,
     category,
-    limit: 20,
+    limit: 200,
     sessionId: sessionId || undefined,
   });
 
@@ -52,7 +42,7 @@ export function FeedPage() {
 
   const handleRefresh = useCallback(() => {
     // Convex auto-refreshes, but this triggers a visual reset
-    setCategory((c) => c);
+    setSortBy((s) => s === "random" ? "recent" : "random");
   }, []);
 
   return (
@@ -66,6 +56,18 @@ export function FeedPage() {
           <div className="flex items-center justify-between mb-6">
             {/* Sort toggle */}
             <div className="flex items-center gap-1 border border-[var(--border)] p-0.5">
+              <button
+                onClick={() => setSortBy("random")}
+                className={clsx(
+                  "flex items-center gap-1.5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-all",
+                  sortBy === "random"
+                    ? "bg-[var(--surface)] text-[var(--white)]"
+                    : "text-[var(--dim)] hover:text-[var(--ash)]"
+                )}
+              >
+                <RefreshCw size={11} className={sortBy === "random" ? "animate-spin-slow" : ""} />
+                Shuffle
+              </button>
               <button
                 onClick={() => setSortBy("recent")}
                 className={clsx(
@@ -106,24 +108,6 @@ export function FeedPage() {
                 <RefreshCw size={14} />
               </button>
             </div>
-          </div>
-
-          {/* Category filter strip */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() => setCategory(cat.value)}
-                className={clsx(
-                  "flex-shrink-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest border transition-all duration-150",
-                  category === cat.value
-                    ? "border-[var(--crimson)] text-[var(--crimson)] bg-[var(--crimson-dim)]"
-                    : "border-[var(--border)] text-[var(--dim)] hover:border-[var(--muted)] hover:text-[var(--ash)]"
-                )}
-              >
-                {cat.label}
-              </button>
-            ))}
           </div>
 
           {/* Feed list */}

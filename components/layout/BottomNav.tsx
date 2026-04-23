@@ -14,11 +14,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const NAV_LINKS = [
   { href: "/", label: "Feed", icon: Home },
-  { href: "/discover", label: "Discover", icon: Compass },
+  { href: "/chat/dm", label: "DMs", icon: MessagesSquare },
   { href: "/confess", label: "Confess", icon: PenSquare },
   { href: "/chat", label: "Chat", icon: MessagesSquare },
   { href: "/profile", label: "Profile", icon: User },
 ];
+
 
 export function BottomNav() {
   const pathname = usePathname();

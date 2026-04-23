@@ -469,6 +469,18 @@ export const toggleEcho = mutation({
         confessionId: args.confessionId,
         createdAt: Date.now(),
       });
+
+      // ── Trigger Notification ──────────────────────────────
+      const confession = await ctx.db.get(args.confessionId);
+      if (confession && confession.sessionId !== args.sessionId) {
+        await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
+          sessionId: confession.sessionId,
+          type: "echo",
+          title: "New Echo",
+          content: "Someone echoed your confession to the void.",
+          link: `/confession/${args.confessionId}`,
+        });
+      }
     }
 
     // Update heat score
@@ -709,8 +721,21 @@ export const voteInPoll = mutation({
       option: args.option,
       createdAt: Date.now(),
     });
+
+    // ── Trigger Notification ────────────────────────────────
+    const confession = await ctx.db.get(args.confessionId);
+    if (confession && confession.sessionId !== args.sessionId) {
+      await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
+        sessionId: confession.sessionId,
+        type: "pollVote",
+        title: "New Vote",
+        content: `Someone voted "${args.option}" on your poll.`,
+        link: `/confession/${args.confessionId}`,
+      });
+    }
   },
 });
+
 
 /**
  * Increment share count.

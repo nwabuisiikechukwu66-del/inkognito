@@ -142,6 +142,7 @@ export const joinQueue = mutation({
       )
       .first();
 
+
     if (waiting) {
       // Pair with the waiting user
       await ctx.db.patch(waiting._id, {

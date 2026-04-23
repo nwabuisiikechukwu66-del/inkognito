@@ -23,6 +23,7 @@ const TOP_LINKS = [
 
 const BOTTOM_LINKS = [
   { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/chat/dm", label: "Direct Messages", icon: MessagesSquare },
   { href: "/bookmarks", label: "Bookmarks", icon: Bookmark },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings },

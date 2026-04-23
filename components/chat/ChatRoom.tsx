@@ -27,7 +27,7 @@ import toast from "react-hot-toast";
 import { Id } from "@/convex/_generated/dataModel";
 import { useWebRTC } from "@/hooks/useWebRTC";
 
-type ChatMode = "text" | "video";
+type ChatMode = "text" | "video" | "voice";
 type RoomState = "idle" | "searching" | "connected" | "ended";
 
 export function ChatRoom() {
@@ -55,10 +55,10 @@ export function ChatRoom() {
     chatSessionId ? { chatSessionId } : "skip"
   );
 
-  // WebRTC hook (only active in video mode)
+  // WebRTC hook
   const { localVideoRef, remoteVideoRef, startCall, endCall } = useWebRTC({
     sessionId,
-    chatSessionId: mode === "video" ? chatSessionId : null,
+    chatSessionId: (mode === "video" || mode === "voice") ? chatSessionId : null,
     myRole,
   });
 
@@ -75,7 +75,8 @@ export function ChatRoom() {
     // Detect transition from waiting → active
     if (chatSession.status === "active" && roomState === "searching") {
       setRoomState("connected");
-      if (mode === "video") startCall();
+      if (mode === "video") startCall(true);
+      if (mode === "voice") startCall(false);
     }
 
     // Detect ended session
@@ -102,12 +103,14 @@ export function ChatRoom() {
         country: country ?? undefined,
       });
 
+
       setChatSessionId(result.sessionId as Id<"chatSessions">);
       setMyRole((result.role as "A" | "B") ?? "A");
 
       if (result.status === "active") {
         setRoomState("connected");
-        if (mode === "video") startCall();
+        if (mode === "video") startCall(true);
+        if (mode === "voice") startCall(false);
       }
     } catch (err) {
       setRoomState("idle");
@@ -173,7 +176,7 @@ export function ChatRoom() {
               Choose your mode
             </p>
 
-            <div className="grid grid-cols-2 gap-4 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
               {/* Text mode */}
               <button
                 onClick={() => setMode("text")}
@@ -191,8 +194,32 @@ export function ChatRoom() {
                 <h3 className="font-display font-bold text-[var(--white)] mt-3 mb-1">
                   Text Chat
                 </h3>
-                <p className="text-[var(--ash)] text-xs leading-relaxed">
-                  Anonymous text with a random stranger. Instant. No traces.
+                <p className="text-[var(--ash)] text-[10px] leading-relaxed">
+                  Anonymous text. Instant.
+                </p>
+              </button>
+
+              {/* Voice mode */}
+              <button
+                onClick={() => setMode("voice")}
+                className={clsx(
+                  "p-6 border-2 text-left transition-all duration-200",
+                  mode === "voice"
+                    ? "border-[var(--crimson)] bg-[var(--crimson-dim)]"
+                    : "border-[var(--border)] hover:border-[var(--muted)]"
+                )}
+              >
+                <svg 
+                  className={clsx("w-6 h-6", mode === "voice" ? "text-[var(--crimson)]" : "text-[var(--dim)]")}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                <h3 className="font-display font-bold text-[var(--white)] mt-3 mb-1">
+                  Voice Chat
+                </h3>
+                <p className="text-[var(--ash)] text-[10px] leading-relaxed">
+                  Audio only. Pure voice.
                 </p>
               </button>
 
@@ -213,11 +240,8 @@ export function ChatRoom() {
                 <h3 className="font-display font-bold text-[var(--white)] mt-3 mb-1">
                   Video Chat
                 </h3>
-                <p className="text-[var(--ash)] text-xs leading-relaxed">
-                  Face-to-face with a stranger. Peer-to-peer. No server sees you.
-                </p>
-                <p className="text-[var(--crimson)] text-[10px] font-mono uppercase tracking-widest mt-2">
-                  Requires camera
+                <p className="text-[var(--ash)] text-[10px] leading-relaxed">
+                  Face-to-face. Peer-to-peer.
                 </p>
               </button>
             </div>
@@ -229,6 +253,7 @@ export function ChatRoom() {
             >
               Find a stranger →
             </button>
+
 
             <p className="text-[var(--muted)] text-[10px] font-mono text-center mt-4 uppercase tracking-widest">
               Anonymous · Peer-to-peer · No logs
@@ -302,21 +327,21 @@ export function ChatRoom() {
               </div>
             </div>
 
-            {/* Video panes (video mode only) */}
+            {/* Video/Voice panes */}
             {mode === "video" && (
               <div className="grid grid-cols-2 gap-2 p-3 border-b border-[var(--border)] bg-[var(--black)]">
-                <div className="relative aspect-video bg-[var(--deep)]">
+                <div className="relative aspect-video bg-[var(--deep)] rounded-lg overflow-hidden border border-[var(--border)]">
                   <video
                     ref={remoteVideoRef}
                     autoPlay
                     playsInline
                     className="w-full h-full object-cover"
                   />
-                  <span className="absolute bottom-1 left-2 font-mono text-[9px] text-[var(--dim)] uppercase">
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded font-mono text-[9px] text-[var(--white)] uppercase tracking-widest">
                     Stranger
-                  </span>
+                  </div>
                 </div>
-                <div className="relative aspect-video bg-[var(--deep)]">
+                <div className="relative aspect-video bg-[var(--deep)] rounded-lg overflow-hidden border border-[var(--border)]">
                   <video
                     ref={localVideoRef}
                     autoPlay
@@ -324,12 +349,40 @@ export function ChatRoom() {
                     muted
                     className="w-full h-full object-cover"
                   />
-                  <span className="absolute bottom-1 left-2 font-mono text-[9px] text-[var(--dim)] uppercase">
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded font-mono text-[9px] text-[var(--white)] uppercase tracking-widest">
                     You
-                  </span>
+                  </div>
                 </div>
               </div>
             )}
+
+            {mode === "voice" && (
+              <div className="flex flex-col items-center justify-center py-10 border-b border-[var(--border)] bg-gradient-to-b from-[var(--black)] to-[var(--deep)]">
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <motion.div
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 rounded-full bg-[var(--crimson)]/20"
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="w-12 h-12 rounded-full bg-[var(--crimson-dim)] flex items-center justify-center text-[var(--crimson)]"
+                  >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </motion.div>
+                </div>
+                <p className="mt-4 font-mono text-[10px] text-[var(--crimson)] uppercase tracking-[0.3em] font-bold">
+                  Shadow Frequency Active
+                </p>
+                <p className="mt-1 text-[var(--dim)] text-[9px] font-mono uppercase">
+                  End-to-end voice encryption
+                </p>
+              </div>
+            )}
+
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-5 space-y-3">

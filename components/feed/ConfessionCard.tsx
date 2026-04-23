@@ -30,6 +30,7 @@ import toast from "react-hot-toast";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SubscriptionModal } from "@/components/ui/SubscriptionModal";
 
 /* ── Types ─────────────────────────────────────────────────── */
 interface ConfessionData {
@@ -102,6 +103,7 @@ export function ConfessionCard({ confession }: Props) {
   const [echoed, setEchoed] = useState(confession.isEchoed);
   const [echoCount, setEchoCount] = useState(confession.echoCount || 0);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Increment view on render (once per session via localStorage debounce)
   useState(() => {
@@ -122,15 +124,25 @@ export function ConfessionCard({ confession }: Props) {
       toast.error("Connecting to the void...");
       return;
     }
+
+    // Check if user is premium before even trying (optional optimization)
+    // But we let the backend throw for source of truth.
+    
     const tid = toast.loading("Opening shadow frequency...");
     try {
       const dmId = await startDM({ initiatorSessionId: sessionId, confessionId: confession._id });
       toast.success("Frequency open.", { id: tid });
-      router.push(`/chat/${dmId}`);
+      router.push(`/chat/dm/${dmId}`);
     } catch (e: any) {
-      toast.error(e.message ?? "Could not open frequency.", { id: tid });
+      toast.dismiss(tid);
+      if (e.message.includes("Premium")) {
+        setShowSubscriptionModal(true);
+      } else {
+        toast.error(e.message ?? "Could not open frequency.");
+      }
     }
   }
+
 
   async function handleReact(type: string) {
     if (!sessionId) {
@@ -521,6 +533,11 @@ export function ConfessionCard({ confession }: Props) {
           <CommentSection confessionId={confession._id} sessionId={sessionId} />
         )}
       </div>
+      {/* Subscription Modal */}
+      <SubscriptionModal 
+        isOpen={showSubscriptionModal} 
+        onClose={() => setShowSubscriptionModal(false)} 
+      />
     </article>
   );
 }

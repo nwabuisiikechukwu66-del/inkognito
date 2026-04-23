@@ -22,18 +22,27 @@ const REACTION_ICONS: Record<string, any> = {
 
 export default function NotificationsPage() {
   const { sessionId } = useAnonSession();
-  const notifications = useQuery(api.confessions.getNotifications, { sessionId: sessionId || "" });
+  const notifications = useQuery(api.notifications.getRecent, { sessionId: sessionId || "" });
+  const markAllRead = useMutation(api.notifications.markAllRead);
+
+  useEffect(() => {
+    if (sessionId) {
+      markAllRead({ sessionId });
+    }
+  }, [sessionId, markAllRead]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="mb-10">
-        <p className="font-mono text-[10px] text-[var(--crimson)] uppercase tracking-[0.3em] mb-3">
-          Activity
-        </p>
-        <h1 className="text-4xl font-display font-bold text-[var(--white)] flex items-center gap-3">
-          <Bell size={32} className="text-[var(--crimson)]" />
-          Notifications
-        </h1>
+      <div className="mb-10 flex items-center justify-between">
+        <div>
+          <p className="font-mono text-[10px] text-[var(--crimson)] uppercase tracking-[0.3em] mb-3">
+            Activity
+          </p>
+          <h1 className="text-4xl font-display font-bold text-[var(--white)] flex items-center gap-3">
+            <Bell size={32} className="text-[var(--crimson)]" />
+            Notifications
+          </h1>
+        </div>
       </div>
 
       <div className="space-y-px border-t border-[var(--border)]">
@@ -46,16 +55,25 @@ export default function NotificationsPage() {
             const isReaction = n.type === "reaction";
             const isEcho = n.type === "echo";
             const isPollVote = n.type === "pollVote";
-            const reactionType = isReaction ? (n as any).reactionType : undefined;
-            const content = n.type === "comment" ? (n as any).content : undefined;
-            const option = isPollVote ? (n as any).option : undefined;
+            const isDM = n.type === "dm";
+            
+            // Try to extract reaction type from content if possible
+            let reactionType = "heart";
+            if (isReaction) {
+              const match = n.content.match(/with (\w+)/);
+              if (match) reactionType = match[1];
+            }
+
             const ReactionIcon = isReaction ? (REACTION_ICONS[reactionType] || Heart) : null;
 
             return (
               <Link 
-                key={`${n.type}-${n.id}`} 
-                href={`/c/${n.confessionId}`}
-                className="block bg-[var(--black)] hover:bg-[var(--surface)] border-b border-[var(--border)] p-6 transition-colors group"
+                key={n._id} 
+                href={n.link || "/"}
+                className={clsx(
+                  "block bg-[var(--black)] hover:bg-[var(--surface)] border-b border-[var(--border)] p-6 transition-colors group relative",
+                  !n.isRead && "after:content-[''] after:absolute after:top-1/2 after:right-4 after:-translate-y-1/2 after:w-2 after:h-2 after:bg-[var(--crimson)] after:rounded-full"
+                )}
               >
                 <div className="flex gap-4">
                   <div className="mt-1">
@@ -73,9 +91,13 @@ export default function NotificationsPage() {
                       <div className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--ash)]">
                         <BarChart2 size={16} />
                       </div>
-                    ) : (
+                    ) : isDM ? (
                       <div className="w-8 h-8 rounded-full bg-[#1e1b4b] flex items-center justify-center text-[#8b5cf6]">
                         <MessageSquare size={16} className="fill-current" />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--ash)]">
+                        <Bell size={16} />
                       </div>
                     )}
                   </div>
@@ -83,26 +105,16 @@ export default function NotificationsPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-sm text-[var(--white)] font-medium">
-                        {isReaction ? (
-                          <>Someone reacted with <span className="text-[var(--crimson)] font-mono text-[10px] uppercase border border-[var(--crimson-dim)] px-1 mx-1">{reactionType}</span> to your confession</>
-                        ) : isEcho ? (
-                          <>Someone <span className="text-[var(--crimson)] font-mono text-[10px] uppercase border border-[var(--crimson-dim)] px-1 mx-1">echoed</span> your confession</>
-                        ) : isPollVote ? (
-                          <>Someone voted <span className="text-[var(--white)] font-mono text-[10px] uppercase border border-[var(--border)] px-1 mx-1">Option {option}</span> on your poll</>
-                        ) : (
-                          <>Someone replied to your confession</>
-                        )}
+                        {n.title}
                       </p>
                       <span className="text-[var(--muted)] font-mono text-[9px] whitespace-nowrap">
                         {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                       </span>
                     </div>
                     
-                    {!isReaction && content && (
-                      <p className="text-[var(--ash)] text-sm line-clamp-2 italic bg-[var(--deep)] p-3 rounded-lg border border-[var(--border)] mt-2">
-                        "{content}"
-                      </p>
-                    )}
+                    <p className="text-[var(--ash)] text-sm leading-relaxed">
+                      {n.content}
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -119,3 +131,4 @@ export default function NotificationsPage() {
     </div>
   );
 }
+

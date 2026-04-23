@@ -114,17 +114,18 @@ export function useWebRTC({ sessionId, chatSessionId, myRole }: UseWebRTCOptions
   }, [pendingSignals, chatSessionId, partnerSessionId, sessionId, sendSignal, markConsumed]);
 
   /* ── Start call ──────────────────────────────────────────── */
-  const startCall = useCallback(async () => {
+  const startCall = useCallback(async (video: boolean = true) => {
     if (!chatSessionId || !partnerSessionId) return;
 
     // Get user's camera + mic
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: "user" },
+        video: video ? { width: 640, height: 480, facingMode: "user" } : false,
         audio: true,
       });
     } catch (err) {
+
       console.error("[WebRTC] Could not get media devices:", err);
       return;
     }

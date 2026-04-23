@@ -123,7 +123,18 @@ export function AnonSessionProvider({ children }: { children: ReactNode }) {
     initSession();
   }, [upsertSession]);
 
+  // ── Register Service Worker (PWA) ──────────────────────────
+  useEffect(() => {
+    if ("serviceWorker" in navigator && typeof window !== "undefined") {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => console.log("[PWA] ServiceWorker registered"))
+        .catch((err) => console.error("[PWA] ServiceWorker failed", err));
+    }
+  }, []);
+
   const updateSessionId = useCallback((newSessionId: string) => {
+
     localStorage.setItem("ink_session_id", newSessionId);
     setSession(prev => ({ ...prev, sessionId: newSessionId }));
   }, []);

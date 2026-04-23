@@ -115,13 +115,24 @@ export function ChatRoom() {
     }
   }
 
+  async function handleNext() {
+    if (!chatSessionId || !sessionId) return;
+    try {
+      await leaveChat({ chatSessionId, sessionId });
+    } catch { /* ignore */ }
+    endCall();
+    setChatSessionId(null);
+    handleStart(); // Immediately find another
+  }
+
   async function handleLeave() {
     if (!chatSessionId || !sessionId) return;
     try {
       await leaveChat({ chatSessionId, sessionId });
     } catch { /* ignore */ }
     endCall();
-    setRoomState("ended");
+    setRoomState("idle");
+    setChatSessionId(null);
   }
 
   async function handleSend() {
@@ -274,12 +285,12 @@ export function ChatRoom() {
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={handleLeave}
-                  title="New stranger"
+                  onClick={handleNext}
+                  title="Find another stranger"
                   className="flex items-center gap-1.5 font-mono text-[10px] text-[var(--dim)] uppercase tracking-widest hover:text-[var(--crimson)] transition-colors"
                 >
                   <SkipForward size={13} />
-                  Skip
+                  Next
                 </button>
                 <button
                   onClick={handleLeave}

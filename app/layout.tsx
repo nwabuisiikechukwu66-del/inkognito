@@ -19,6 +19,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { InstallPrompt } from "@/components/layout/InstallPrompt";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -97,6 +98,7 @@ export default function RootLayout({
 
               {/* Mobile Bottom Navigation */}
               <BottomNav />
+              <InstallPrompt />
             </div>
 
             {/* Toast notifications — dark themed */}

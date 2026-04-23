@@ -199,4 +199,16 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_confession", ["confessionId"])
     .index("by_session_confession", ["sessionId", "confessionId"]),
+
+  /* ── Notifications ───────────────────────────────────────── */
+  notifications: defineTable({
+    sessionId: v.string(), // Recipient
+    type: v.string(),      // "reaction" | "comment" | "dm" | "system"
+    title: v.string(),
+    content: v.string(),
+    link: v.optional(v.string()),
+    isRead: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_session", ["sessionId"])
+    .index("by_read", ["sessionId", "isRead"]),
 });

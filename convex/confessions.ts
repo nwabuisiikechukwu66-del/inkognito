@@ -15,8 +15,9 @@
  * - report        : Report a confession for moderation
  */
 
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
+import { api, internal } from "./_generated/api";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 
@@ -581,18 +582,21 @@ export const react = mutation({
         // Different reaction → switch
         await ctx.db.patch(existing._id, { type: args.type });
       }
-    } else {
-      // New reaction
-      await ctx.db.insert("reactions", {
-        confessionId: args.confessionId,
-        sessionId: args.sessionId,
-        type: args.type,
-        createdAt: Date.now(),
+    }
+    
+    // ── Trigger Notification ────────────────────────────────
+    const confession = await ctx.db.get(args.confessionId);
+    if (confession && confession.sessionId !== args.sessionId) {
+      await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
+        sessionId: confession.sessionId,
+        type: "reaction",
+        title: "New Reaction",
+        content: `Someone reacted to your confession with ${args.type}.`,
+        link: `/confession/${args.confessionId}`,
       });
     }
 
     // Update heat score on the confession
-    const confession = await ctx.db.get(args.confessionId);
     if (confession) {
       const reactions = await ctx.db
         .query("reactions")
@@ -665,6 +669,18 @@ export const addComment = mutation({
       isHidden: false,
       createdAt: now,
     });
+
+    // ── Trigger Notification ────────────────────────────────
+    const confession = await ctx.db.get(args.confessionId);
+    if (confession && confession.sessionId !== args.sessionId) {
+      await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
+        sessionId: confession.sessionId,
+        type: "comment",
+        title: "New Comment",
+        content: `Someone commented on your confession: "${args.content.substring(0, 30)}..."`,
+        link: `/confession/${args.confessionId}`,
+      });
+    }
   },
 });
 

@@ -1,11 +1,13 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useEffect } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import { Bell, Heart, MessageSquare, Flame, Zap, Moon, Smile, Skull, Eye, HeartHandshake, Frown, Loader2, Repeat, BarChart2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import { clsx } from "clsx";
 
 const REACTION_ICONS: Record<string, any> = {
   flame: Flame,

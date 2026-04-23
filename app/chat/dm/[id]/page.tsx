@@ -11,7 +11,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams, useRouter } from "next/navigation";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
-import { Send, ArrowLeft, Loader2, User, ShieldCheck } from "lucide-react";
+import { Send, ArrowLeft, Loader2, User, ShieldCheck, MessageSquare } from "lucide-react";
 import { clsx } from "clsx";
 import toast from "react-hot-toast";
 import { Id } from "@/convex/_generated/dataModel";

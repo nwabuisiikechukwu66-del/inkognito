@@ -138,14 +138,23 @@ function OverviewTab({ secret }: { secret: string }) {
         <div className="bg-[var(--surface)] border border-[var(--border)] p-8">
           <h3 className="text-xs font-mono uppercase tracking-[0.3em] mb-6 border-b border-[var(--border)] pb-4">Geo Distribution</h3>
           <div className="space-y-4">
-             {/* Mock map or list of countries */}
-             <p className="text-[10px] text-[var(--ash)] font-mono">Nigeria (NG) — 45%</p>
-             <div className="w-full bg-[var(--black)] h-1.5 rounded-full"><div className="bg-[var(--crimson)] h-1.5 w-[45%] rounded-full" /></div>
-             <p className="text-[10px] text-[var(--ash)] font-mono">USA (US) — 20%</p>
-             <div className="w-full bg-[var(--black)] h-1.5 rounded-full"><div className="bg-[var(--crimson)] h-1.5 w-[20%] rounded-full" /></div>
-             <p className="text-[10px] text-[var(--ash)] font-mono">Kenya (KE) — 15%</p>
-             <div className="w-full bg-[var(--black)] h-1.5 rounded-full"><div className="bg-[var(--crimson)] h-1.5 w-[15%] rounded-full" /></div>
+             {stats.geoStats && stats.geoStats.length > 0 ? (
+               stats.geoStats.map((geo: any) => (
+                 <div key={geo.code}>
+                   <p className="text-[10px] text-[var(--ash)] font-mono mb-1">{geo.code} — {geo.count} users</p>
+                   <div className="w-full bg-[var(--black)] h-1 rounded-full overflow-hidden">
+                     <div 
+                       className="bg-[var(--crimson)] h-full transition-all duration-1000" 
+                       style={{ width: `${(geo.count / stats.totalUsers) * 100}%` }} 
+                     />
+                   </div>
+                 </div>
+               ))
+             ) : (
+               <p className="text-[10px] text-[var(--dim)] font-mono uppercase tracking-widest italic py-4">Insufficient geo data...</p>
+             )}
           </div>
+
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] p-8">
           <h3 className="text-xs font-mono uppercase tracking-[0.3em] mb-6 border-b border-[var(--border)] pb-4">Recent Activity</h3>

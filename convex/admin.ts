@@ -35,15 +35,29 @@ export const getStats = query({
       
     const recentConfessions = await ctx.db.query("confessions").order("desc").take(50);
     
+    // Compute Geo Distribution (Real data)
+    const countries: Record<string, number> = {};
+    users.forEach(u => {
+      if (u.country) {
+        countries[u.country] = (countries[u.country] ?? 0) + 1;
+      }
+    });
+    const geoStats = Object.entries(countries)
+      .map(([code, count]) => ({ code, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
     return {
       totalUsers: users.length, // Sample of last 1000
       premiumUsers: premiumUsers.length,
       activeUsers24h: activeUsers.length,
       pendingReports: reports.length,
       recentConfessions,
+      geoStats,
     };
   },
 });
+
 
 export const hideConfession = mutation({
   args: { 

@@ -93,7 +93,8 @@ export const generate = internalAction({
           throw new Error(`Groq API error: ${response.status} ${JSON.stringify(data)}`);
         }
 
-        const content = data.choices[0]?.message?.content?.trim();
+        const content = data.choices?.[0]?.message?.content?.trim();
+
 
         if (content) {
           await ctx.runMutation(internal.autopost.insertBotPost, {

@@ -211,4 +211,13 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_session", ["sessionId"])
     .index("by_read", ["sessionId", "isRead"]),
+
+  /* ── System Logs (For debugging crons/actions) ───────────── */
+  systemLogs: defineTable({
+    task: v.string(),      // e.g. "autopost"
+    status: v.string(),    // "success" | "error"
+    message: v.string(),
+    createdAt: v.number(),
+  }).index("by_task", ["task"]),
 });
+

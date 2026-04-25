@@ -98,13 +98,24 @@ export const generate = internalAction({
             country,
           });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to generate bot confession:", err);
+        await ctx.runMutation(internal.autopost.logStatus, {
+          task: "autopost",
+          status: "error",
+          message: err.message || "Unknown Groq error",
+        });
       }
 
-      // Small delay between generations if bulk
       if (iterations > 1) await new Promise(r => setTimeout(r, 1000));
     }
+  },
+});
+
+export const logStatus = internalMutation({
+  args: { task: v.string(), status: v.string(), message: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("systemLogs", { ...args, createdAt: Date.now() });
   },
 });
 
@@ -143,5 +154,13 @@ export const insertBotPost = internalMutation({
       isHidden: false,
       createdAt: Date.now() - (Math.floor(Math.random() * 3600000)), // Randomize time in last hour
     });
+
+    await ctx.db.insert("systemLogs", {
+      task: "autopost",
+      status: "success",
+      message: `Generated bot post in category: ${args.category}`,
+      createdAt: Date.now(),
+    });
   },
 });
+

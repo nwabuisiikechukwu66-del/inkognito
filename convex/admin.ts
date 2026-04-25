@@ -73,3 +73,12 @@ export const seedFeed = mutation({
   },
 });
 
+export const getSystemLogs = query({
+  args: { secret: v.string() },
+  handler: async (ctx, args) => {
+    requireAdmin(args.secret);
+    return ctx.db.query("systemLogs").order("desc").take(20);
+  },
+});
+
+

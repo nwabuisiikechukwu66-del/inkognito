@@ -108,7 +108,12 @@ export function Sidebar() {
               <div className="relative">
                 <Icon size={16} />
                 {isNotifications && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--crimson)] rounded-full border border-[var(--black)]" />
+                  <div className="absolute -top-1 -right-1">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-[var(--crimson)] opacity-75"></span>
+                    <span className="relative flex items-center justify-center w-4 h-4 bg-[var(--crimson)] text-[var(--white)] text-[8px] font-bold rounded-full">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  </div>
                 )}
               </div>
               <span className="font-mono text-[10px] uppercase tracking-widest">{link.label}</span>

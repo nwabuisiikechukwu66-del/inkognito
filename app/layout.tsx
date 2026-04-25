@@ -21,6 +21,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { InstallPrompt } from "@/components/layout/InstallPrompt";
 import { NotificationHandler } from "@/components/providers/NotificationHandler";
+import { SWRegistration } from "@/components/providers/SWRegistration";
+
 
 
 export const viewport: Viewport = {
@@ -64,7 +66,14 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Inkognito",
+  },
 };
+
 
 export default function RootLayout({
 
@@ -77,8 +86,10 @@ export default function RootLayout({
       <body>
         <ConvexClientProvider>
           <AnonSessionProvider>
+            <SWRegistration />
             <NotificationHandler />
             <AgeGate />
+
 
 
             <div className="flex min-h-screen bg-[#050505]">

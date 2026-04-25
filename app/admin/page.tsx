@@ -202,8 +202,14 @@ function ModerationTab({ secret }: { secret: string }) {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-[9px] font-mono px-2 py-0.5 bg-[var(--black)] text-[var(--crimson)] border border-[var(--crimson-dim)] uppercase">{c.category}</span>
+                {c.sessionId.startsWith("bot_") && (
+                  <span className="text-[9px] font-mono px-2 py-0.5 bg-blue-950 text-blue-400 border border-blue-900 uppercase flex items-center gap-1">
+                    <Zap size={8} /> AI AGENT
+                  </span>
+                )}
                 <span className="text-[9px] font-mono text-[var(--dim)]">{new Date(c.createdAt).toLocaleString()}</span>
               </div>
+
               <p className="text-sm text-[var(--ash)] leading-relaxed">{c.content}</p>
             </div>
             <div className="flex flex-col gap-2 w-48">

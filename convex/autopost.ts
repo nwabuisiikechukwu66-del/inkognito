@@ -88,6 +88,11 @@ export const generate = internalAction({
         });
 
         const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(`Groq API error: ${response.status} ${JSON.stringify(data)}`);
+        }
+
         const content = data.choices[0]?.message?.content?.trim();
 
         if (content) {
@@ -97,7 +102,10 @@ export const generate = internalAction({
             isNSFW: category === "sexual" || category === "taboo",
             country,
           });
+        } else {
+          throw new Error("Groq returned empty content.");
         }
+
       } catch (err: any) {
         console.error("Failed to generate bot confession:", err);
         await ctx.runMutation(internal.autopost.logStatus, {

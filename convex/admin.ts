@@ -7,6 +7,8 @@
 
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+
 
 const requireAdmin = (secret: string) => {
   const adminSecret = process.env.ADMIN_SECRET || "inkognito_admin_123";
@@ -53,3 +55,21 @@ export const hideConfession = mutation({
     await ctx.db.patch(args.confessionId, { isHidden: true });
   },
 });
+
+export const seedFeed = mutation({
+  args: { 
+    secret: v.string(),
+    count: v.number(),
+  },
+  handler: async (ctx, args) => {
+    requireAdmin(args.secret);
+    
+    // Trigger the background action
+    await ctx.scheduler.runAfter(0, internal.autopost.generate, {
+      count: args.count,
+    });
+    
+    return { success: true, message: `Seeding ${args.count} posts in background...` };
+  },
+});
+

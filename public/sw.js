@@ -3,15 +3,16 @@
  * 
  * Strategy:
  * - Static Assets: Cache-first
- * - Dynamic Routes: Network-first (stale-while-revalidate style)
+ * - Dynamic Routes: Network-first falling back to offline page
  */
 
-const CACHE_NAME = "ink-v2";
+const CACHE_NAME = "ink-v3";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
+  "/globals.css"
 ];
 
 self.addEventListener("install", (event) => {
@@ -34,26 +35,31 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) return;
 
-  // For navigation requests, try network first
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match("/");
+        return caches.match("/").then(response => {
+          return response || new Response("Offline mode not available for this page.", {
+            status: 503,
+            headers: { "Content-Type": "text/plain" }
+          });
+        });
       })
     );
     return;
   }
 
-  // For other assets, try cache then network
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
 
       return fetch(event.request).then((networkResponse) => {
-        // Cache static assets on the fly
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+
         if (event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|woff2)$/)) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {

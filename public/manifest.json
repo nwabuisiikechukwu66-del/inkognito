@@ -27,13 +27,8 @@
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide"
     }
   ]
 }
+
 

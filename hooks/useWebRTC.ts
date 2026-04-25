@@ -2,29 +2,18 @@
  * useWebRTC — hooks/useWebRTC.ts
  *
  * Custom WebRTC hook for peer-to-peer video chat.
- *
- * How it works:
- * 1. "A" (first user) creates an offer and stores it via Convex rtcSignals
- * 2. "B" (second user) reads the offer, creates an answer, stores it back
- * 3. Both sides exchange ICE candidates the same way
- * 4. WebRTC establishes a direct peer connection — server only saw signaling
- *
- * All video/audio data is peer-to-peer (no server cost).
- * Signaling data is tiny and temporary in Convex.
+ * Robust implementation with ICE candidate queuing and race condition handling.
  */
 
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
-/* Free STUN servers — help peers find each other across NAT */
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:stun2.l.google.com:19302" },
-  // Optional: add TURN server here for users behind symmetric NAT
-  // { urls: "turn:yourturnserver.com", username: "x", credential: "y" }
 ];
 
 interface UseWebRTCOptions {
@@ -38,17 +27,19 @@ export function useWebRTC({ sessionId, chatSessionId, myRole }: UseWebRTCOptions
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
+  
+  const [isPeerInitialized, setIsPeerInitialized] = useState(false);
+  const [iceConnectionState, setIceConnectionState] = useState<RTCIceConnectionState>("new");
 
   const sendSignal = useMutation(api.chat.sendSignal);
   const markConsumed = useMutation(api.chat.markSignalsConsumed);
 
-  // Poll for incoming signals addressed to me
   const pendingSignals = useQuery(
     api.chat.getPendingSignals,
     chatSessionId ? { chatSessionId, toSessionId: sessionId } : "skip"
   );
 
-  /* ── Get partner's session ID from chat session ─────────── */
   const chatSession = useQuery(
     api.chat.getMyChatSession,
     sessionId ? { sessionId } : "skip"
@@ -75,9 +66,15 @@ export function useWebRTC({ sessionId, chatSessionId, myRole }: UseWebRTCOptions
 
         try {
           if (signal.type === "offer") {
-            await peerRef.current!.setRemoteDescription(
-              new RTCSessionDescription(payload)
-            );
+            console.log("[WebRTC] Received offer");
+            await peerRef.current!.setRemoteDescription(new RTCSessionDescription(payload));
+            
+            // Process any queued ICE candidates now that we have a remote description
+            while (iceCandidateQueue.current.length > 0) {
+              const candidate = iceCandidateQueue.current.shift();
+              if (candidate) await peerRef.current!.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+
             const answer = await peerRef.current!.createAnswer();
             await peerRef.current!.setLocalDescription(answer);
 
@@ -91,65 +88,42 @@ export function useWebRTC({ sessionId, chatSessionId, myRole }: UseWebRTCOptions
               });
             }
           } else if (signal.type === "answer") {
-            await peerRef.current!.setRemoteDescription(
-              new RTCSessionDescription(payload)
-            );
+            console.log("[WebRTC] Received answer");
+            await peerRef.current!.setRemoteDescription(new RTCSessionDescription(payload));
+            
+            // Process any queued ICE candidates
+            while (iceCandidateQueue.current.length > 0) {
+              const candidate = iceCandidateQueue.current.shift();
+              if (candidate) await peerRef.current!.addIceCandidate(new RTCIceCandidate(candidate));
+            }
           } else if (signal.type === "ice-candidate") {
-            await peerRef.current!.addIceCandidate(
-              new RTCIceCandidate(payload)
-            );
+            if (peerRef.current?.remoteDescription) {
+              await peerRef.current!.addIceCandidate(new RTCIceCandidate(payload));
+            } else {
+              // Queue candidate if remote description is not yet set
+              iceCandidateQueue.current.push(payload);
+            }
           }
         } catch (err) {
           console.error("[WebRTC] Error processing signal:", signal.type, err);
         }
       }
 
-      // Mark all processed signals as consumed
       if (ids.length > 0) {
         await markConsumed({ signalIds: ids });
       }
     }
 
     processSignals();
-  }, [pendingSignals, chatSessionId, partnerSessionId, sessionId, sendSignal, markConsumed]);
+  }, [pendingSignals, chatSessionId, partnerSessionId, sessionId, sendSignal, markConsumed, isPeerInitialized]);
 
-  /* ── Start call ──────────────────────────────────────────── */
-  const startCall = useCallback(async (video: boolean = true) => {
-    if (!chatSessionId || !partnerSessionId) return;
+  /* ── Initialize Peer Connection ─────────────────────────── */
+  const initializePeer = useCallback(async (video: boolean = true) => {
+    if (peerRef.current) return peerRef.current;
 
-    // Get user's camera + mic
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: video ? { width: 640, height: 480, facingMode: "user" } : false,
-        audio: true,
-      });
-    } catch (err) {
-
-      console.error("[WebRTC] Could not get media devices:", err);
-      return;
-    }
-
-    localStreamRef.current = stream;
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-    }
-
-    // Create peer connection
     const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peerRef.current = peer;
-
-    // Add local tracks to peer connection
-    stream.getTracks().forEach((track) => peer.addTrack(track, stream));
-
-    // When we get remote video stream
-    peer.ontrack = (event) => {
-      if (remoteVideoRef.current && event.streams[0]) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
-    };
-
-    // Send ICE candidates to partner via Convex
+    
     peer.onicecandidate = async (event) => {
       if (event.candidate && chatSessionId && partnerSessionId) {
         await sendSignal({
@@ -162,11 +136,46 @@ export function useWebRTC({ sessionId, chatSessionId, myRole }: UseWebRTCOptions
       }
     };
 
-    peer.oniceconnectionstatechange = () => {
-      console.info("[WebRTC] ICE state:", peer.iceConnectionState);
+    peer.ontrack = (event) => {
+      if (remoteVideoRef.current && event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
     };
 
-    // Role A creates the offer
+    peer.oniceconnectionstatechange = () => {
+      console.info("[WebRTC] ICE state:", peer.iceConnectionState);
+      setIceConnectionState(peer.iceConnectionState);
+    };
+
+
+    setIsPeerInitialized(true);
+    return peer;
+  }, [chatSessionId, partnerSessionId, sessionId, sendSignal]);
+
+  /* ── Start call ──────────────────────────────────────────── */
+  const startCall = useCallback(async (video: boolean = true) => {
+    if (!chatSessionId || !partnerSessionId) return;
+
+    const peer = await initializePeer(video);
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: video ? { width: 640, height: 480, facingMode: "user" } : false,
+        audio: true,
+      });
+    } catch (err) {
+      console.error("[WebRTC] Could not get media devices:", err);
+      return;
+    }
+
+    localStreamRef.current = stream;
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = stream;
+    }
+
+    stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+
     if (myRole === "A") {
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
@@ -179,28 +188,28 @@ export function useWebRTC({ sessionId, chatSessionId, myRole }: UseWebRTCOptions
         payload: JSON.stringify(offer),
       });
     }
-    // Role B waits for the offer (handled in useEffect above)
-  }, [chatSessionId, partnerSessionId, sessionId, myRole, sendSignal]);
+  }, [chatSessionId, partnerSessionId, sessionId, myRole, sendSignal, initializePeer]);
 
   /* ── End call ────────────────────────────────────────────── */
   const endCall = useCallback(() => {
-    // Stop all local tracks
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
 
-    // Close peer connection
     peerRef.current?.close();
     peerRef.current = null;
+    setIsPeerInitialized(false);
+    setIceConnectionState("closed");
+    iceCandidateQueue.current = [];
 
-    // Clear video elements
+
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, []);
 
-  /* ── Cleanup on unmount ──────────────────────────────────── */
   useEffect(() => {
     return () => { endCall(); };
   }, [endCall]);
 
-  return { localVideoRef, remoteVideoRef, startCall, endCall };
+  return { localVideoRef, remoteVideoRef, startCall, endCall, iceConnectionState };
 }
+

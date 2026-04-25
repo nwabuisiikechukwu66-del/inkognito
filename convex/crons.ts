@@ -14,8 +14,10 @@ const crons = cronJobs();
 crons.interval(
   "generate-bot-confessions",
   { minutes: 6 },
-  internal.autopost.generate
+  internal.autopost.generate,
+  {} // Missing arguments object
 );
+
 
 // ── Maintenance ──────────────────────────────────────────────
 // Optional: Clean up old signaling data or expired sync tokens

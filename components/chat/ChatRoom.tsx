@@ -56,11 +56,12 @@ export function ChatRoom() {
   );
 
   // WebRTC hook
-  const { localVideoRef, remoteVideoRef, startCall, endCall } = useWebRTC({
+  const { localVideoRef, remoteVideoRef, startCall, endCall, iceConnectionState } = useWebRTC({
     sessionId,
     chatSessionId: (mode === "video" || mode === "voice") ? chatSessionId : null,
     myRole,
   });
+
 
   /* ── Detect pairing ──────────────────────────────────────── */
   useEffect(() => {
@@ -337,6 +338,15 @@ export function ChatRoom() {
                     playsInline
                     className="w-full h-full object-cover"
                   />
+                  
+                  {/* Connection Overlay */}
+                  {(iceConnectionState === "new" || iceConnectionState === "checking") && (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+                      <Loader size={16} className="text-[var(--crimson)] animate-spin" />
+                      <span className="font-mono text-[8px] text-[var(--ash)] uppercase tracking-widest">Establishing Secure Line...</span>
+                    </div>
+                  )}
+
                   <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded font-mono text-[9px] text-[var(--white)] uppercase tracking-widest">
                     Stranger
                   </div>
@@ -355,6 +365,7 @@ export function ChatRoom() {
                 </div>
               </div>
             )}
+
 
             {mode === "voice" && (
               <div className="flex flex-col items-center justify-center py-10 border-b border-[var(--border)] bg-gradient-to-b from-[var(--black)] to-[var(--deep)]">

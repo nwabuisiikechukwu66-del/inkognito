@@ -9,6 +9,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Home, Compass, PenSquare, MessagesSquare, Smile, User, Settings, Bell, Bookmark } from "lucide-react";
 import { clsx } from "clsx";
 import { motion } from "framer-motion";
@@ -31,7 +33,8 @@ const BOTTOM_LINKS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isLoaded, country } = useAnonSession();
+  const { isLoaded, country, sessionId } = useAnonSession();
+  const unreadCount = useQuery(api.notifications.getUnreadCount, { sessionId: sessionId || "" }) ?? 0;
 
   return (
     <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-[var(--border)] bg-[var(--black)] py-6 z-40 overflow-y-auto">
@@ -91,6 +94,8 @@ export function Sidebar() {
         {BOTTOM_LINKS.map((link) => {
           const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
           const Icon = link.icon;
+          const isNotifications = link.href === "/notifications";
+          
           return (
             <Link
               key={link.href}
@@ -100,12 +105,18 @@ export function Sidebar() {
                 active ? "text-[var(--white)]" : "text-[var(--dim)] hover:text-[var(--ash)] hover:bg-[var(--surface)]"
               )}
             >
-              <Icon size={16} />
+              <div className="relative">
+                <Icon size={16} />
+                {isNotifications && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--crimson)] rounded-full border border-[var(--black)]" />
+                )}
+              </div>
               <span className="font-mono text-[10px] uppercase tracking-widest">{link.label}</span>
             </Link>
           );
         })}
       </nav>
+
 
     </aside>
   );

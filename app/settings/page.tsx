@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { Settings, Shield, Trash2, Eye, Info, ChevronRight, Check } from "lucide-react";
 import { clsx } from "clsx";
 import toast from "react-hot-toast";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+
 
 
 export default function SettingsPage() {
@@ -148,10 +147,8 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Shadow Admin Section (Hidden unless dev or specific action) */}
-        <ShadowAdmin />
-
         <div className="mt-8 text-center">
+
           <p className="text-[10px] font-mono text-[var(--muted)] uppercase tracking-widest">
             Inkognito v2.0.0 · Made for the shadows
           </p>
@@ -161,60 +158,8 @@ export default function SettingsPage() {
   );
 }
 
-function ShadowAdmin() {
-  const [secret, setSecret] = useState("");
-  const [count, setCount] = useState(5);
-  const [loading, setLoading] = useState(false);
-  const seedFeed = useMutation(api.admin.seedFeed);
 
-  const handleSeed = async () => {
-    if (!secret) return toast.error("Enter secret");
-    setLoading(true);
-    try {
-      await seedFeed({ secret, count });
-      toast.success(`Seeding ${count} posts... check feed in a few mins.`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to seed");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  return (
-    <section className="mt-12 pt-12 border-t border-[var(--border)] border-dashed opacity-30 hover:opacity-100 transition-opacity">
-      <h2 className="text-[10px] font-mono uppercase tracking-[0.3em] text-[var(--crimson)] mb-6">
-        Shadow Admin
-      </h2>
-      <div className="bg-[var(--card)] border border-[var(--border)] p-6 space-y-4">
-        <input 
-          type="password" 
-          placeholder="Admin Secret"
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          className="w-full bg-[var(--black)] border border-[var(--border)] px-4 py-2 text-xs font-mono text-[var(--white)]"
-        />
-        <div className="flex gap-2">
-          <input 
-            type="number" 
-            value={count}
-            onChange={(e) => setCount(parseInt(e.target.value))}
-            className="w-20 bg-[var(--black)] border border-[var(--border)] px-4 py-2 text-xs font-mono text-[var(--white)]"
-          />
-          <button 
-            onClick={handleSeed}
-            disabled={loading}
-            className="flex-1 bg-[var(--crimson-dim)] text-[var(--crimson)] border border-[var(--crimson)] py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-[var(--crimson)] hover:text-white transition-all disabled:opacity-50"
-          >
-            {loading ? "Generating..." : "Seed Human Stories"}
-          </button>
-        </div>
-        <p className="text-[9px] text-[var(--muted)] font-mono uppercase italic">
-          * Caution: This triggers AI generation using Groq. Use sparingly.
-        </p>
-      </div>
-    </section>
-  );
-}
 
 
 function LinkItem({ label, href }: { label: string, href: string }) {

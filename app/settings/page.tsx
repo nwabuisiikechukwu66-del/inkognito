@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Shield, Trash2, Eye, Info, ChevronRight, Check, Bell, Loader, Activity } from "lucide-react";
+import { Settings, Shield, Trash2, Eye, Info, ChevronRight, Check, Bell } from "lucide-react";
+
 import { clsx } from "clsx";
 import toast from "react-hot-toast";
 import { useQuery } from "convex/react";
@@ -179,8 +180,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* System Health (Invisible Admin Tools) */}
-        <SystemHealth />
+
 
         {/* About Section */}
         <section>

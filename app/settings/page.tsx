@@ -208,65 +208,6 @@ export default function SettingsPage() {
   );
 }
 
-
-
-
-
-function SystemHealth() {
-  const [secret, setSecret] = useState("");
-  const logs = useQuery(api.admin.getSystemLogs, secret ? { secret } : "skip");
-
-  return (
-    <section className="mt-12 pt-12 border-t border-[var(--border)] border-dashed opacity-20 hover:opacity-100 transition-all">
-      <h2 className="text-[10px] font-mono uppercase tracking-[0.3em] text-[var(--crimson)] mb-6 flex items-center gap-2">
-        <Activity size={12} />
-        System Health
-      </h2>
-      
-      {!secret ? (
-        <input 
-          type="password" 
-          placeholder="Admin Key for Logs"
-          onChange={(e) => setSecret(e.target.value)}
-          className="w-full bg-[var(--black)] border border-[var(--border)] px-4 py-3 text-[10px] font-mono text-[var(--white)]"
-        />
-      ) : (
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-          {!logs ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader size={16} className="animate-spin text-[var(--dim)]" />
-            </div>
-          ) : logs.length === 0 ? (
-            <p className="text-[10px] font-mono text-[var(--muted)] uppercase italic">No logs found.</p>
-          ) : (
-            logs.map((log: any) => (
-              <div key={log._id} className="p-3 bg-[var(--surface)] border border-[var(--border)] rounded flex items-start gap-3">
-                <div className={clsx(
-                  "w-1.5 h-1.5 rounded-full mt-1.5",
-                  log.status === "success" ? "bg-green-500" : "bg-red-500"
-                )} />
-                <div>
-                  <p className="text-[10px] font-mono font-bold text-[var(--white)] uppercase tracking-wider">{log.task}</p>
-                  <p className="text-[10px] text-[var(--ash)] leading-relaxed">{log.message}</p>
-                  <p className="text-[8px] text-[var(--dim)] font-mono mt-1">
-                    {new Date(log.createdAt).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
-          <button 
-            onClick={() => setSecret("")}
-            className="w-full py-2 text-[8px] font-mono uppercase text-[var(--dim)] hover:text-[var(--white)]"
-          >
-            Lock Logs
-          </button>
-        </div>
-      )}
-    </section>
-  );
-}
-
 function LinkItem({ label, href }: { label: string, href: string }) {
 
   return (

@@ -81,4 +81,33 @@ export const getSystemLogs = query({
   },
 });
 
+export const getReports = query({
+  args: { secret: v.string() },
+  handler: async (ctx, args) => {
+    requireAdmin(args.secret);
+    return ctx.db.query("reports").order("desc").take(50);
+  },
+});
 
+export const flagConfession = mutation({
+  args: { 
+    secret: v.string(),
+    confessionId: v.id("confessions"),
+  },
+  handler: async (ctx, args) => {
+    requireAdmin(args.secret);
+    await ctx.db.patch(args.confessionId, { isFlagged: true });
+  },
+});
+
+export const updateReportStatus = mutation({
+  args: { 
+    secret: v.string(),
+    reportId: v.id("reports"),
+    status: v.string(), // "reviewed" | "dismissed"
+  },
+  handler: async (ctx, args) => {
+    requireAdmin(args.secret);
+    await ctx.db.patch(args.reportId, { status: args.status });
+  },
+});

@@ -13,10 +13,11 @@ const crons = cronJobs();
 // Generates a human-like confession every 6 minutes (10 per hour)
 crons.interval(
   "generate-bot-confessions",
-  { minutes: 6 },
+  { minutes: 12 },
   internal.autopost.generate,
-  {} // Missing arguments object
+  {} 
 );
+
 
 
 // ── Maintenance ──────────────────────────────────────────────

@@ -4,7 +4,10 @@
  * Listens for new unread notifications and shows a toast.
  */
 
+"use client";
+
 import { useEffect, useRef } from "react";
+
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";

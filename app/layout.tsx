@@ -20,7 +20,8 @@ import { Footer } from "@/components/layout/Footer";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { InstallPrompt } from "@/components/layout/InstallPrompt";
-import { useNotificationToast } from "@/hooks/useNotificationToast";
+import { NotificationHandler } from "@/components/providers/NotificationHandler";
+
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -65,13 +66,8 @@ export const metadata: Metadata = {
   },
 };
 
-function NotificationHandler() {
-  useNotificationToast();
-  return null;
-}
-
-
 export default function RootLayout({
+
   children,
 }: {
   children: React.ReactNode;

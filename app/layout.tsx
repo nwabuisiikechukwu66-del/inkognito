@@ -72,7 +72,11 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Inkognito",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
+
 
 
 export default function RootLayout({

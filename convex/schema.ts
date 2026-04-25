@@ -44,7 +44,9 @@ export default defineSchema({
     lastChatReset: v.optional(v.number()),
     streak: v.optional(v.number()),
   }).index("by_session", ["sessionId"])
-    .index("by_username", ["username"]),
+    .index("by_username", ["username"])
+    .index("by_created", ["createdAt"]),
+
 
   /* ── Confessions ─────────────────────────────────────────── */
   confessions: defineTable({

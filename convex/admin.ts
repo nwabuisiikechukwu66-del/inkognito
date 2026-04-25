@@ -111,3 +111,33 @@ export const updateReportStatus = mutation({
     await ctx.db.patch(args.reportId, { status: args.status });
   },
 });
+
+export const restoreConfession = mutation({
+  args: { 
+    secret: v.string(),
+    confessionId: v.id("confessions"),
+  },
+  handler: async (ctx, args) => {
+    requireAdmin(args.secret);
+    await ctx.db.patch(args.confessionId, { isHidden: false, isFlagged: false });
+  },
+});
+
+export const banSession = mutation({
+  args: { 
+    secret: v.string(),
+    sessionId: v.string(),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    requireAdmin(args.secret);
+    const user = await ctx.db
+      .query("anonUsers")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .first();
+    if (user) {
+      await ctx.db.patch(user._id, { isBanned: true, banReason: args.reason });
+    }
+  },
+});
+

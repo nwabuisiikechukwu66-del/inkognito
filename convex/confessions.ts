@@ -478,7 +478,7 @@ export const toggleEcho = mutation({
           type: "echo",
           title: "New Echo",
           content: "Someone echoed your confession to the void.",
-          link: `/confession/${args.confessionId}`,
+          link: `/c/${args.confessionId}`,
         });
       }
     }
@@ -605,7 +605,7 @@ export const react = mutation({
         type: "reaction",
         title: "New Reaction",
         content: `Someone reacted to a confession you follow with ${args.type}.`,
-        link: `/confession/${args.confessionId}`,
+        link: `/c/${args.confessionId}`,
       });
     }
 
@@ -691,7 +691,7 @@ export const addComment = mutation({
         type: "comment",
         title: "New Comment",
         content: `Someone commented on a confession you follow: "${args.content.substring(0, 30)}..."`,
-        link: `/confession/${args.confessionId}`,
+        link: `/c/${args.confessionId}`,
       });
     }
   },
@@ -731,7 +731,7 @@ export const voteInPoll = mutation({
         type: "pollVote",
         title: "New Vote",
         content: `Someone voted "${args.option}" on your poll.`,
-        link: `/confession/${args.confessionId}`,
+        link: `/c/${args.confessionId}`,
       });
     }
   },

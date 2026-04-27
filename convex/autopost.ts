@@ -162,7 +162,7 @@ export const insertBotPost = internalMutation({
       isModerated: true,
       isFlagged: false,
       isHidden: false,
-      createdAt: Date.now() - (Math.floor(Math.random() * 3600000)), // Randomize time in last hour
+      createdAt: Date.now(),
     });
 
     await ctx.db.insert("systemLogs", {
@@ -193,7 +193,7 @@ export const postNextSeed = internalAction({
       type: "system",
       title: "New Confession",
       content: `A new ${conf.category} confession was just posted to the void...`,
-      link: `/confession/${id}`,
+      link: `/c/${id}`,
     });
   }
 });

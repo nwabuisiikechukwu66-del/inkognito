@@ -6,6 +6,7 @@
 
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const getRecent = query({
   args: { sessionId: v.string() },
@@ -96,6 +97,13 @@ export const notifyActiveUsers = internalMutation({
         isRead: false,
         createdAt: Date.now(),
       });
+
+      await ctx.scheduler.runAfter(0, internal.pushAction.sendPush, {
+        sessionId: user.sessionId,
+        title: args.title,
+        body: args.content,
+        url: args.link,
+      });
     }
   },
 });
@@ -148,6 +156,13 @@ export const notifyThreadParticipants = internalMutation({
         link: args.link,
         isRead: false,
         createdAt: Date.now(),
+      });
+
+      await ctx.scheduler.runAfter(0, internal.pushAction.sendPush, {
+        sessionId,
+        title: args.title,
+        body: args.content,
+        url: args.link,
       });
     }
   },

@@ -8,6 +8,7 @@
 import { internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { seedConfessions } from "./seedData";
 
 const CATEGORIES = [
   "sexual", "relationship", "work", "family", "dark", "funny", "taboo", 
@@ -150,7 +151,7 @@ export const insertBotPost = internalMutation({
       isPremium: Math.random() > 0.8, // Some bots are premium
     });
 
-    await ctx.db.insert("confessions", {
+    const confessionId = await ctx.db.insert("confessions", {
       sessionId: botSessionId,
       content: args.content,
       category: args.category,
@@ -170,6 +171,30 @@ export const insertBotPost = internalMutation({
       message: `Generated bot post in category: ${args.category}`,
       createdAt: Date.now(),
     });
+    
+    return confessionId;
   },
+});
+
+export const postNextSeed = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const conf = seedConfessions[Math.floor(Math.random() * seedConfessions.length)];
+    const country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+    
+    const id = await ctx.runMutation(internal.autopost.insertBotPost, {
+      content: conf.content,
+      category: conf.category,
+      isNSFW: conf.category === "sexual",
+      country,
+    });
+    
+    await ctx.runMutation(internal.notifications.notifyActiveUsers, {
+      type: "system",
+      title: "New Confession",
+      content: `A new ${conf.category} confession was just posted to the void...`,
+      link: `/confession/${id}`,
+    });
+  }
 });
 

@@ -68,3 +68,87 @@ export const createInternal = internalMutation({
     });
   },
 });
+
+export const notifyActiveUsers = internalMutation({
+  args: {
+    type: v.string(),
+    title: v.string(),
+    content: v.string(),
+    link: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const activeSince = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    
+    const users = await ctx.db.query("anonUsers")
+      .filter((q) => q.gte(q.field("lastSeenAt"), activeSince))
+      .collect();
+      
+    // Safety limit to avoid transaction size errors in Convex
+    const targets = users.slice(0, 5000); 
+    
+    for (const user of targets) {
+      await ctx.db.insert("notifications", {
+        sessionId: user.sessionId,
+        type: args.type,
+        title: args.title,
+        content: args.content,
+        link: args.link,
+        isRead: false,
+        createdAt: Date.now(),
+      });
+    }
+  },
+});
+
+export const notifyThreadParticipants = internalMutation({
+  args: {
+    confessionId: v.id("confessions"),
+    triggerSessionId: v.string(),
+    type: v.string(),
+    title: v.string(),
+    content: v.string(),
+    link: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const confession = await ctx.db.get(args.confessionId);
+    if (!confession) return;
+    
+    const targetSessions = new Set<string>();
+    
+    if (confession.sessionId !== args.triggerSessionId) {
+      targetSessions.add(confession.sessionId);
+    }
+    
+    const comments = await ctx.db.query("comments")
+      .withIndex("by_confession", (q) => q.eq("confessionId", args.confessionId))
+      .collect();
+      
+    for (const c of comments) {
+      if (c.sessionId !== args.triggerSessionId) {
+        targetSessions.add(c.sessionId);
+      }
+    }
+    
+    const reactions = await ctx.db.query("reactions")
+      .withIndex("by_confession", (q) => q.eq("confessionId", args.confessionId))
+      .collect();
+      
+    for (const r of reactions) {
+      if (r.sessionId !== args.triggerSessionId) {
+        targetSessions.add(r.sessionId);
+      }
+    }
+    
+    for (const sessionId of targetSessions) {
+      await ctx.db.insert("notifications", {
+        sessionId,
+        type: args.type,
+        title: args.title,
+        content: args.content,
+        link: args.link,
+        isRead: false,
+        createdAt: Date.now(),
+      });
+    }
+  },
+});

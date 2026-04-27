@@ -33,7 +33,7 @@ export function useNotificationToast() {
         toast.custom((t) => (
           <div
             className={clsx(
-              "max-w-md w-full bg-[var(--card)] border-l-4 border-[var(--crimson)] shadow-2xl p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-5",
+              "max-w-md w-full bg-[var(--card)] border-l-4 border-[var(--crimson)] shadow-2xl p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-5",
               t.visible ? "opacity-100" : "opacity-0"
             )}
           >

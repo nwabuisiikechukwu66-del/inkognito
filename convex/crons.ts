@@ -18,6 +18,12 @@ crons.interval(
   {} 
 );
 
+crons.interval(
+  "post-seed-confession",
+  { minutes: 2 },
+  internal.autopost.postNextSeed,
+  {}
+);
 
 
 // ── Maintenance ──────────────────────────────────────────────

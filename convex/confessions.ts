@@ -598,12 +598,13 @@ export const react = mutation({
     
     // ── Trigger Notification ────────────────────────────────
     const confession = await ctx.db.get(args.confessionId);
-    if (confession && confession.sessionId !== args.sessionId) {
-      await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
-        sessionId: confession.sessionId,
+    if (confession) {
+      await ctx.scheduler.runAfter(0, internal.notifications.notifyThreadParticipants, {
+        confessionId: args.confessionId,
+        triggerSessionId: args.sessionId,
         type: "reaction",
         title: "New Reaction",
-        content: `Someone reacted to your confession with ${args.type}.`,
+        content: `Someone reacted to a confession you follow with ${args.type}.`,
         link: `/confession/${args.confessionId}`,
       });
     }
@@ -682,14 +683,14 @@ export const addComment = mutation({
       createdAt: now,
     });
 
-    // ── Trigger Notification ────────────────────────────────
     const confession = await ctx.db.get(args.confessionId);
-    if (confession && confession.sessionId !== args.sessionId) {
-      await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
-        sessionId: confession.sessionId,
+    if (confession) {
+      await ctx.scheduler.runAfter(0, internal.notifications.notifyThreadParticipants, {
+        confessionId: args.confessionId,
+        triggerSessionId: args.sessionId,
         type: "comment",
         title: "New Comment",
-        content: `Someone commented on your confession: "${args.content.substring(0, 30)}..."`,
+        content: `Someone commented on a confession you follow: "${args.content.substring(0, 30)}..."`,
         link: `/confession/${args.confessionId}`,
       });
     }

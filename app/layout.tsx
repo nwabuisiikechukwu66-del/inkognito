@@ -120,7 +120,7 @@ export default function RootLayout({
 
             {/* Toast notifications — dark themed */}
             <Toaster
-              position="bottom-center"
+              position="top-center"
               toastOptions={{
                 style: {
                   background: "#1a1a1f",

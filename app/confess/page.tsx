@@ -7,6 +7,7 @@
  */
 
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ConfessForm } from "@/components/feed/ConfessForm";
 
 export const metadata: Metadata = {
@@ -34,7 +35,9 @@ export default function ConfessPage() {
       </div>
 
       {/* Confession form */}
-      <ConfessForm />
+      <Suspense fallback={<div className="feed-width mx-auto h-64 border border-[var(--border)] bg-[var(--surface)] animate-pulse" />}>
+        <ConfessForm />
+      </Suspense>
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { InstallPrompt } from "@/components/layout/InstallPrompt";
 import { NotificationHandler } from "@/components/providers/NotificationHandler";
 import { SWRegistration } from "@/components/providers/SWRegistration";
+import { InkParticles } from "@/components/ui/InkParticles";
 
 
 
@@ -100,7 +101,10 @@ export default function RootLayout({
               {/* Desktop Sidebar */}
               <Sidebar />
 
-              <div className="flex-1 flex flex-col min-h-screen md:ml-64 w-full overflow-x-hidden">
+              {/* Ink Particle Background Effect */}
+              <InkParticles />
+
+              <div className="flex-1 flex flex-col min-h-screen md:ml-64 w-full overflow-x-hidden relative z-[1]">
                 {/* Top navigation - hidden on desktop since sidebar has it */}
                 <div className="md:hidden sticky top-0 z-50">
                   <Navbar />

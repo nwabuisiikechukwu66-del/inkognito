@@ -2,20 +2,22 @@
  * Convex Schema — convex/schema.ts
  *
  * Tables:
- * - confessions   : Anonymous posts with reactions and metadata
- * - comments      : Comments on confessions
- * - reactions     : Heart/fire/shock reactions on confessions
- * - chatSessions  : Random chat pairing sessions
- * - chatMessages  : Messages within a chat session
- * - rtcSignals    : WebRTC signaling data (offer/answer/ICE candidates)
- * - reports       : Content moderation reports
- * - anonUsers     : Lightweight anonymous profiles (UUID-based)
- * - companionChats: AI companion messages for persistence
- * - directMessages: 1-on-1 private messaging sessions
- * - dmMessages    : Messages within direct messages
- * - syncTokens    : Ephemeral tokens for device linking
- * - bookmarks     : User saved confessions
- * - echoes        : Reposted confessions (unique name: Echo)
+ * - confessions      : Anonymous posts with reactions and metadata
+ * - comments         : Comments on confessions
+ * - reactions        : Heart/fire/shock reactions on confessions
+ * - chatSessions     : Random chat pairing sessions
+ * - chatMessages     : Messages within a chat session
+ * - rtcSignals       : WebRTC signaling data (offer/answer/ICE candidates)
+ * - reports          : Content moderation reports
+ * - anonUsers        : Lightweight anonymous profiles (UUID-based)
+ * - companionChats   : AI companion messages for persistence
+ * - directMessages   : 1-on-1 private messaging sessions
+ * - dmMessages       : Messages within direct messages
+ * - syncTokens       : Ephemeral tokens for device linking
+ * - bookmarks        : User saved confessions
+ * - echoes           : Reposted confessions (unique name: Echo)
+ * - realms           : Themed rooms / channels ("Shadow Realms")
+ * - realmMemberships : User-realm join records
  *
  * Note: No email, no personal data beyond session UUID + rough location.
  */
@@ -69,11 +71,13 @@ export default defineSchema({
     })),
     mood: v.optional(v.string()), // e.g., "guilty", "relieved", "seeking_advice"
     shareCount: v.optional(v.number()),
+    realmId: v.optional(v.id("realms")), // Optional: posted into a specific realm
     createdAt: v.number(),
   }).index("by_created", ["createdAt"])
     .index("by_heat", ["heatScore"])
     .index("by_session", ["sessionId"])
-    .index("by_category", ["category"]),
+    .index("by_category", ["category"])
+    .index("by_realm", ["realmId"]),
 
   /* ── Comments ────────────────────────────────────────────── */
   comments: defineTable({
@@ -231,5 +235,35 @@ export default defineSchema({
     message: v.string(),
     createdAt: v.number(),
   }).index("by_task", ["task"]),
+
+  /* ── Realms (Themed Rooms / Channels) ─────────────────────── */
+  realms: defineTable({
+    name: v.string(),                    // "Lagos After Dark"
+    slug: v.string(),                    // "lagos-after-dark" (URL-safe)
+    description: v.string(),             // Short blurb shown on cards
+    rules: v.optional(v.string()),       // Realm-specific posting rules
+    emoji: v.string(),                   // "🌙" — displayed on cards
+    category: v.string(),                // "culture" | "life_stage" | "interest" | "creative"
+    themeColor: v.string(),              // Hex color for mood tinting (e.g. "#e63946")
+    bgGradient: v.optional(v.string()),  // Optional CSS gradient for the realm header
+    creatorSessionId: v.optional(v.string()), // Who created it (null for system realms)
+    memberCount: v.number(),             // Denormalized counter
+    isPublic: v.boolean(),               // Public realms are discoverable
+    isArchived: v.boolean(),             // Archived realms are read-only
+    isFeatured: v.optional(v.boolean()), // Hand-picked for discovery page
+    createdAt: v.number(),
+  }).index("by_slug", ["slug"])
+    .index("by_category", ["category"])
+    .index("by_memberCount", ["memberCount"])
+    .index("by_featured", ["isFeatured"]),
+
+  /* ── Realm Memberships ───────────────────────────────────── */
+  realmMemberships: defineTable({
+    sessionId: v.string(),
+    realmId: v.id("realms"),
+    joinedAt: v.number(),
+  }).index("by_session", ["sessionId"])
+    .index("by_realm", ["realmId"])
+    .index("by_session_realm", ["sessionId", "realmId"]),
 });
 

@@ -90,6 +90,12 @@ export function Hero() {
               />
             </Link>
             <Link
+              href="/realms"
+              className="inline-flex items-center gap-2 px-6 py-3 border border-[var(--border)] text-[var(--ash)] font-mono text-xs uppercase tracking-widest hover:border-[var(--muted)] hover:text-[var(--paper)] transition-all duration-200"
+            >
+              Explore Realms
+            </Link>
+            <Link
               href="/chat"
               className="inline-flex items-center gap-2 px-6 py-3 border border-[var(--border)] text-[var(--ash)] font-mono text-xs uppercase tracking-widest hover:border-[var(--muted)] hover:text-[var(--paper)] transition-all duration-200"
             >
@@ -108,16 +114,16 @@ export function Hero() {
 /** Scrolling ticker strip — like a news ticker, shows confession categories */
 function Ticker() {
   const items = [
-    "sexual confessions",
+    "lagos after dark",
     "dark thoughts",
+    "campus confessions",
     "relationship secrets",
-    "work confessions",
-    "family truths",
-    "what i never said",
-    "late night thoughts",
-    "guilty pleasures",
-    "things i did",
-    "what i wanted",
+    "midnight philosophers",
+    "corporate shadows",
+    "unsent letters",
+    "dream journal",
+    "love & heartbreak",
+    "immigrant diaries",
   ];
 
   // Duplicate for seamless loop

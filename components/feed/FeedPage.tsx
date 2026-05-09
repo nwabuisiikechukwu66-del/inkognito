@@ -19,8 +19,9 @@ import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import { ConfessionCard } from "./ConfessionCard";
 import { ConfessionSkeleton } from "./ConfessionSkeleton";
 import { clsx } from "clsx";
-import { Flame, Clock, RefreshCw } from "lucide-react";
+import { Flame, Clock, RefreshCw, Globe } from "lucide-react";
 import { motion } from "framer-motion";
+import { Id } from "@/convex/_generated/dataModel";
 
 /* ── FeedPage Component ────────────────────────────────────────── */
 
@@ -28,13 +29,18 @@ export function FeedPage() {
   const { sessionId } = useAnonSession();
   const [sortBy, setSortBy] = useState("random");
   const [category, setCategory] = useState("all");
+  const [selectedRealmId, setSelectedRealmId] = useState<Id<"realms"> | undefined>();
+
+  // Fetch user's joined realms
+  const myRealms = useQuery(api.realms.getMyRealms, sessionId ? { sessionId } : "skip");
 
   // Fetch feed from Convex — auto-updates in real time
   const result = useQuery(api.confessions.getFeed, {
     sortBy,
     category,
-    limit: 200,
+    limit: 2000,
     sessionId: sessionId || undefined,
+    realmId: selectedRealmId,
   });
 
   const isLoading = result === undefined;
@@ -51,6 +57,41 @@ export function FeedPage() {
 
         {/* ── Main Feed Column ─────────────────────────────── */}
         <div className="feed-width w-full mx-auto lg:mx-0">
+
+          {/* Realm Switcher Pills */}
+          {myRealms && myRealms.length > 0 && (
+            <div className="mb-6 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
+              <div className="flex items-center gap-2 min-w-max">
+                <Globe size={14} className="text-[var(--dim)] mr-1 flex-shrink-0" />
+                <button
+                  onClick={() => setSelectedRealmId(undefined)}
+                  className={clsx(
+                    "px-4 py-1.5 rounded-full border text-[10px] font-mono uppercase tracking-widest transition-all whitespace-nowrap",
+                    !selectedRealmId
+                      ? "bg-[var(--white)] border-[var(--white)] text-[var(--black)]"
+                      : "bg-transparent border-[var(--border)] text-[var(--dim)] hover:border-[var(--muted)] hover:text-[var(--ash)]"
+                  )}
+                >
+                  Global
+                </button>
+                {myRealms.map((realm: any) => (
+                  <button
+                    key={realm._id}
+                    onClick={() => setSelectedRealmId(realm._id)}
+                    className={clsx(
+                      "px-4 py-1.5 rounded-full border text-[10px] font-mono uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1.5",
+                      selectedRealmId === realm._id
+                        ? "bg-[var(--white)] border-[var(--white)] text-[var(--black)]"
+                        : "bg-transparent border-[var(--border)] text-[var(--dim)] hover:border-[var(--muted)] hover:text-[var(--ash)]"
+                    )}
+                  >
+                    <span>{realm.emoji}</span>
+                    {realm.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Controls bar */}
           <div className="flex items-center justify-between mb-6">

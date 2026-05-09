@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PenSquare, MessagesSquare, Compass, User } from "lucide-react";
+import { Home, PenSquare, MessagesSquare, Globe, User } from "lucide-react";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "convex/react";
@@ -17,7 +17,7 @@ import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 
 const NAV_LINKS = [
   { href: "/", label: "Feed", icon: Home },
-  { href: "/chat/dm", label: "DMs", icon: MessagesSquare },
+  { href: "/realms", label: "Realms", icon: Globe },
   { href: "/confess", label: "Confess", icon: PenSquare },
   { href: "/chat", label: "Chat", icon: MessagesSquare },
   { href: "/profile", label: "Profile", icon: User },
@@ -60,14 +60,6 @@ export function BottomNav() {
                     active ? "text-[var(--crimson)]" : "text-[var(--dim)] group-hover:text-[var(--ash)]"
                   )}
                 />
-                {link.href === "/chat/dm" && unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1">
-                    <span className="absolute inset-0 animate-ping rounded-full bg-[var(--crimson)] opacity-75"></span>
-                    <span className="relative flex items-center justify-center w-3 h-3 bg-[var(--crimson)] text-[var(--white)] text-[7px] font-bold rounded-full">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  </div>
-                )}
               </div>
 
               <span

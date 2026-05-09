@@ -2,21 +2,24 @@
  * Sidebar — components/layout/Sidebar.tsx
  *
  * Vertical navigation sidebar for desktop screens.
+ * Includes Realms link + list of joined realms.
  */
 
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Home, Compass, PenSquare, MessagesSquare, Smile, User, Settings, Bell, Bookmark } from "lucide-react";
+import { Home, Compass, PenSquare, MessagesSquare, Smile, User, Settings, Bell, Bookmark, Globe, ChevronDown, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const TOP_LINKS = [
   { href: "/", label: "Feed", icon: Home },
+  { href: "/realms", label: "Realms", icon: Globe },
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/confess", label: "Confess", icon: PenSquare },
   { href: "/chat", label: "Stranger Chat", icon: MessagesSquare },
@@ -35,9 +38,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isLoaded, country, sessionId } = useAnonSession();
   const unreadCount = useQuery(api.notifications.getUnreadCount, { sessionId: sessionId || "" }) ?? 0;
+  const myRealms = useQuery(api.realms.getMyRealms, sessionId ? { sessionId } : "skip");
+  const [realmsExpanded, setRealmsExpanded] = useState(true);
 
   return (
-    <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-[var(--border)] bg-[var(--black)] py-6 z-40 overflow-y-auto">
+    <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-[var(--border)] bg-[var(--black)] py-6 z-40 overflow-y-auto no-scrollbar">
       
       {/* Brand */}
       <div className="px-8 mb-10">
@@ -89,6 +94,56 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* My Realms */}
+      {myRealms && myRealms.length > 0 && (
+        <div className="px-4 mt-6">
+          <button
+            onClick={() => setRealmsExpanded(!realmsExpanded)}
+            className="flex items-center justify-between w-full px-4 py-2 text-[var(--dim)] hover:text-[var(--ash)] transition-colors"
+          >
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em]">
+              My Realms
+            </span>
+            {realmsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          </button>
+
+          <AnimatePresence initial={false}>
+            {realmsExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-0.5 mt-1">
+                  {myRealms.map((realm: any) => {
+                    const active = pathname === `/realms/${realm.slug}`;
+                    return (
+                      <Link
+                        key={realm._id}
+                        href={`/realms/${realm.slug}`}
+                        className={clsx(
+                          "flex items-center gap-3 py-2 px-4 rounded-md transition-all group",
+                          active
+                            ? "bg-[var(--surface)] text-[var(--white)]"
+                            : "text-[var(--dim)] hover:text-[var(--ash)] hover:bg-[var(--surface)]/50"
+                        )}
+                      >
+                        <span className="text-sm flex-shrink-0">{realm.emoji}</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider truncate">
+                          {realm.name}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       {/* Bottom Nav */}
       <nav className="px-4 mt-8 space-y-1">
         {BOTTOM_LINKS.map((link) => {
@@ -121,7 +176,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
 
     </aside>
   );

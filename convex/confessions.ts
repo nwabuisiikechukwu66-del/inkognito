@@ -57,13 +57,20 @@ export const getFeed = query({
     cursor: v.optional(v.number()),
     limit: v.optional(v.number()),
     sessionId: v.optional(v.string()),
+    realmId: v.optional(v.id("realms")),
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     const sortBy = args.sortBy ?? "recent";
 
     let feedQuery;
-    if (args.category && args.category !== "all") {
+    if (args.realmId) {
+      // Realm-specific feed
+      feedQuery = ctx.db
+        .query("confessions")
+        .withIndex("by_realm", (q) => q.eq("realmId", args.realmId!))
+        .filter((q) => q.eq(q.field("isHidden"), false));
+    } else if (args.category && args.category !== "all") {
       feedQuery = ctx.db
         .query("confessions")
         .withIndex("by_category", (q) => q.eq("category", args.category!))
@@ -370,6 +377,7 @@ export const post = mutation({
       optionB: v.string(),
     })),
     mood: v.optional(v.string()),
+    realmId: v.optional(v.id("realms")),
   },
   handler: async (ctx, args) => {
     // ── Validation ──────────────────────────────────────────
@@ -409,6 +417,7 @@ export const post = mutation({
       createdAt: now,
       poll: args.poll,
       mood: args.mood,
+      realmId: args.realmId,
     });
 
     return { id };

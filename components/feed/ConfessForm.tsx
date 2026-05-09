@@ -14,14 +14,17 @@
 
 "use client";
 
-import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useState, useCallback } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import { clsx } from "clsx";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Check } from "lucide-react";
+import { Send, Check, Globe } from "lucide-react";
+import { PostRitualAnimation } from "@/components/ui/PostRitualAnimation";
+import { useSearchParams } from "next/navigation";
+import { Id } from "@/convex/_generated/dataModel";
 
 const CATEGORIES = [
   { value: "sexual",       label: "Sexual"        },
@@ -46,6 +49,8 @@ const MAX_CHARS = 2000;
 
 export function ConfessForm() {
   const { sessionId, country, city, isLoaded } = useAnonSession();
+  const searchParams = useSearchParams();
+  const realmSlug = searchParams.get("realm");
 
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("other");
@@ -53,6 +58,7 @@ export function ConfessForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [postedId, setPostedId] = useState<string | null>(null);
+  const [showRitual, setShowRitual] = useState(false);
 
   // Poll state
   const [hasPoll, setHasPoll] = useState(false);
@@ -60,13 +66,39 @@ export function ConfessForm() {
   const [optionA, setOptionA] = useState("");
   const [optionB, setOptionB] = useState("");
   const [selectedMood, setSelectedMood] = useState<string | undefined>();
+  const [selectedRealmId, setSelectedRealmId] = useState<Id<"realms"> | undefined>();
 
   const postMutation = useMutation(api.confessions.post);
+  const myRealms = useQuery(api.realms.getMyRealms, sessionId ? { sessionId } : "skip");
+  
+  // If realm slug from URL, find matching realm
+  const realmFromUrl = useQuery(
+    api.realms.getBySlug,
+    realmSlug ? { slug: realmSlug, sessionId: sessionId || undefined } : "skip"
+  );
 
   const charCount = content.length;
   const remaining = MAX_CHARS - charCount;
   const isNearLimit = remaining < 200;
   const isOverLimit = remaining < 0;
+
+  // Get the effective realm ID
+  const effectiveRealmId = selectedRealmId || (realmFromUrl?._id as Id<"realms"> | undefined);
+
+  // Mood color mapping for ritual animation
+  const moodColors: Record<string, string> = {
+    guilty: "#c41e3a",
+    relieved: "#2a9d8f",
+    seeking_advice: "#e9c46a",
+    just_venting: "#e63946",
+    heartbroken: "#b5838d",
+    proud: "#06d6a0",
+  };
+
+  const handleRitualComplete = useCallback(() => {
+    setShowRitual(false);
+    setSubmitted(true);
+  }, []);
 
   async function handleSubmit() {
     if (!sessionId || !content.trim() || isOverLimit) return;
@@ -86,10 +118,11 @@ export function ConfessForm() {
           optionB: optionB.trim() || "No",
         } : undefined,
         mood: selectedMood,
+        realmId: effectiveRealmId,
       });
 
       setPostedId(id);
-      setSubmitted(true);
+      setShowRitual(true);
     } catch (err: unknown) {
       toast.error((err as Error).message ?? "Failed to post. Try again.");
     } finally {
@@ -329,6 +362,45 @@ export function ConfessForm() {
             ))}
           </div>
         </div>
+        
+        {/* Realm Selector */}
+        {myRealms && myRealms.length > 0 && (
+          <div className="border-t border-[var(--border)] p-4 bg-[var(--deep)]/30">
+            <p className="font-mono text-[9px] text-[var(--dim)] uppercase tracking-widest mb-3 px-1 flex items-center gap-2">
+              <Globe size={10} />
+              Post to Realm (Optional)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedRealmId(undefined)}
+                className={clsx(
+                  "px-3 py-1.5 flex items-center gap-2 border transition-all duration-150 rounded-sm",
+                  !effectiveRealmId
+                    ? "border-[var(--white)] text-[var(--white)] bg-[var(--deep)]"
+                    : "border-[var(--border)] text-[var(--dim)] hover:border-[var(--muted)] hover:text-[var(--ash)]"
+                )}
+              >
+                <span className="text-sm">🌐</span>
+                <span className="font-mono text-[9px] uppercase tracking-wider">Global</span>
+              </button>
+              {myRealms.map((realm: any) => (
+                <button
+                  key={realm._id}
+                  onClick={() => setSelectedRealmId(realm._id)}
+                  className={clsx(
+                    "px-3 py-1.5 flex items-center gap-2 border transition-all duration-150 rounded-sm",
+                    effectiveRealmId === realm._id
+                      ? "border-[var(--white)] text-[var(--white)] bg-[var(--deep)]"
+                      : "border-[var(--border)] text-[var(--dim)] hover:border-[var(--muted)] hover:text-[var(--ash)]"
+                  )}
+                >
+                  <span className="text-sm">{realm.emoji}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-wider">{realm.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Anonymous assurance */}
@@ -336,6 +408,13 @@ export function ConfessForm() {
         Completely anonymous · No account required ·
         {country && ` Posting from ${country}`}
       </p>
+
+      {/* Post Ritual Animation */}
+      <PostRitualAnimation
+        isActive={showRitual}
+        onComplete={handleRitualComplete}
+        moodColor={selectedMood ? moodColors[selectedMood] : "#c41e3a"}
+      />
     </div>
   );
 }

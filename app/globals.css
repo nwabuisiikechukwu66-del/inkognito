@@ -307,3 +307,147 @@ input:-webkit-autofill:focus {
   pointer-events: none;
   user-select: none;
 }
+
+/* ── No scrollbar utility ─────────────────────────────────── */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Shadow Mood Color System ─────────────────────────────── */
+[data-mood="guilty"] {
+  --mood-accent: #c41e3a;
+  --mood-bg: rgba(196, 30, 58, 0.03);
+}
+[data-mood="relieved"] {
+  --mood-accent: #2a9d8f;
+  --mood-bg: rgba(42, 157, 143, 0.03);
+}
+[data-mood="seeking_advice"] {
+  --mood-accent: #e9c46a;
+  --mood-bg: rgba(233, 196, 106, 0.03);
+}
+[data-mood="just_venting"] {
+  --mood-accent: #e63946;
+  --mood-bg: rgba(230, 57, 70, 0.03);
+}
+[data-mood="heartbroken"] {
+  --mood-accent: #b5838d;
+  --mood-bg: rgba(181, 131, 141, 0.03);
+}
+[data-mood="proud"] {
+  --mood-accent: #06d6a0;
+  --mood-bg: rgba(6, 214, 160, 0.03);
+}
+
+/* ── Ink & Void Animations ────────────────────────────────── */
+@keyframes inkDissolve {
+  0% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 0.6;
+    filter: blur(2px);
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(0.8) translateY(40px);
+  }
+}
+
+@keyframes rippleWave {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes moodPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--mood-accent, var(--crimson));
+  }
+  50% {
+    box-shadow: 0 0 20px 4px var(--mood-accent, var(--crimson));
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  30% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px);
+  }
+}
+
+.animate-ink-dissolve {
+  animation: inkDissolve 1.2s ease-in forwards;
+}
+
+.animate-ripple {
+  animation: rippleWave 1.5s ease-out forwards;
+}
+
+.animate-mood-pulse {
+  animation: moodPulse 2s ease-in-out infinite;
+}
+
+.animate-float-up {
+  animation: floatUp 2s ease-out forwards;
+}
+
+/* ── Realm Theme Overlays ─────────────────────────────────── */
+.realm-theme-overlay {
+  position: relative;
+}
+.realm-theme-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 20% 50%,
+    var(--realm-color, transparent) 0%,
+    transparent 60%
+  );
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Realm card hover shine ───────────────────────────────── */
+@keyframes realmShine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+.realm-card-shine:hover::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.03),
+    transparent
+  );
+  animation: realmShine 0.8s ease-in-out;
+}

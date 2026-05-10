@@ -8,8 +8,7 @@
 
 import { useEffect, useRef } from "react";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useNotifications } from "./useNotifications";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import toast from "react-hot-toast";
 import { clsx } from "clsx";
@@ -18,7 +17,7 @@ import { Bell } from "lucide-react";
 
 export function useNotificationToast() {
   const { sessionId } = useAnonSession();
-  const notifications = useQuery(api.notifications.getRecent, { sessionId: sessionId || "" });
+  const { notifications } = useNotifications();
   const prevCountRef = useRef<number>(0);
 
   useEffect(() => {

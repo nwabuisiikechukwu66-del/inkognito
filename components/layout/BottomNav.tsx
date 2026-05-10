@@ -11,8 +11,6 @@ import { usePathname } from "next/navigation";
 import { Home, PenSquare, MessagesSquare, Globe, User } from "lucide-react";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 
 const NAV_LINKS = [
@@ -27,7 +25,6 @@ const NAV_LINKS = [
 export function BottomNav() {
   const pathname = usePathname();
   const { sessionId } = useAnonSession();
-  const unreadCount = useQuery(api.notifications.getUnreadCount, { sessionId: sessionId || "" }) ?? 0;
 
 
   return (

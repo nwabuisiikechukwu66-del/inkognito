@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useAnonSession } from "@/components/providers/AnonSessionProvider";
+
+import { useNotifications } from "@/hooks/useNotifications";
 import { Bell, Heart, MessageSquare, Flame, Zap, Moon, Smile, Skull, Eye, HeartHandshake, Frown, Loader2, Repeat, BarChart2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -13,7 +12,7 @@ const REACTION_ICONS: Record<string, any> = {
   flame: Flame,
   heart: Heart,
   zap: Zap,
-  droplets: Moon, // Using moon as placeholder if droplets not available or just standardizing
+  droplets: Moon, 
   moon: Moon,
   laugh: Smile,
   skull: Skull,
@@ -23,15 +22,11 @@ const REACTION_ICONS: Record<string, any> = {
 };
 
 export default function NotificationsPage() {
-  const { sessionId } = useAnonSession();
-  const notifications = useQuery(api.notifications.getRecent, { sessionId: sessionId || "" });
-  const markAllRead = useMutation(api.notifications.markAllRead);
+  const { notifications, markAllAsRead, isLoading } = useNotifications();
 
   useEffect(() => {
-    if (sessionId) {
-      markAllRead({ sessionId });
-    }
-  }, [sessionId, markAllRead]);
+    markAllAsRead();
+  }, [markAllAsRead]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
@@ -48,7 +43,7 @@ export default function NotificationsPage() {
       </div>
 
       <div className="space-y-px border-t border-[var(--border)]">
-        {!notifications ? (
+        {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="animate-spin text-[var(--dim)]" size={32} />
           </div>

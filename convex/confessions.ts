@@ -167,7 +167,6 @@ export const getFeed = query({
           pollResults,
           shareCount: c.shareCount ?? 0,
           echoCount: (await ctx.db.query("echoes").withIndex("by_confession", (q) => q.eq("confessionId", c._id)).collect()).length,
-          isBookmarked: args.sessionId ? (await ctx.db.query("bookmarks").withIndex("by_session_confession", (q) => q.eq("sessionId", args.sessionId!).eq("confessionId", c._id)).first() !== null) : false,
           isEchoed: args.sessionId ? (await ctx.db.query("echoes").withIndex("by_session_confession", (q) => q.eq("sessionId", args.sessionId!).eq("confessionId", c._id)).first() !== null) : false,
         };
       })
@@ -427,33 +426,6 @@ export const post = mutation({
 /**
  * Toggle bookmark for a confession.
  */
-export const toggleBookmark = mutation({
-  args: {
-    confessionId: v.id("confessions"),
-    sessionId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("bookmarks")
-      .withIndex("by_session_confession", (q) =>
-        q.eq("sessionId", args.sessionId).eq("confessionId", args.confessionId)
-      )
-      .first();
-
-    if (existing) {
-      await ctx.db.delete(existing._id);
-      return { bookmarked: false };
-    } else {
-      await ctx.db.insert("bookmarks", {
-        sessionId: args.sessionId,
-        confessionId: args.confessionId,
-        createdAt: Date.now(),
-      });
-      return { bookmarked: true };
-    }
-  },
-});
-
 /**
  * Toggle Echo (repost) for a confession.
  */
@@ -479,17 +451,6 @@ export const toggleEcho = mutation({
         createdAt: Date.now(),
       });
 
-      // ── Trigger Notification ──────────────────────────────
-      const confession = await ctx.db.get(args.confessionId);
-      if (confession && confession.sessionId !== args.sessionId) {
-        await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
-          sessionId: confession.sessionId,
-          type: "echo",
-          title: "New Echo",
-          content: "Someone echoed your confession to the void.",
-          link: `/c/${args.confessionId}`,
-        });
-      }
     }
 
     // Update heat score
@@ -519,51 +480,6 @@ export const toggleEcho = mutation({
     }
 
     return { echoed: !existing };
-  },
-});
-
-/**
- * Get user's bookmarked confessions.
- */
-export const getBookmarks = query({
-  args: { sessionId: v.string() },
-  handler: async (ctx, args) => {
-    const bookmarks = await ctx.db
-      .query("bookmarks")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .order("desc")
-      .collect();
-
-    const confessions = await Promise.all(
-      bookmarks.map(async (b) => {
-        const c = await ctx.db.get(b.confessionId);
-        if (!c || c.isHidden) return null;
-
-        // Reuse enrichment logic (simplified for bookmarks)
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
-          .collect();
-        const comments = await ctx.db
-          .query("comments")
-          .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
-          .collect();
-
-        const reactionCounts: Record<string, number> = {};
-        for (const r of reactions) {
-          reactionCounts[r.type] = (reactionCounts[r.type] ?? 0) + 1;
-        }
-
-        return {
-          ...c,
-          reactionCount: reactions.length,
-          reactionCounts,
-          commentCount: comments.length,
-        };
-      })
-    );
-
-    return confessions.filter((c) => c !== null);
   },
 });
 
@@ -607,17 +523,7 @@ export const react = mutation({
     
     // ── Trigger Notification ────────────────────────────────
     const confession = await ctx.db.get(args.confessionId);
-    if (confession) {
-      await ctx.scheduler.runAfter(0, internal.notifications.notifyThreadParticipants, {
-        confessionId: args.confessionId,
-        triggerSessionId: args.sessionId,
-        type: "reaction",
-        title: "New Reaction",
-        content: `Someone reacted to a confession you follow with ${args.type}.`,
-        link: `/c/${args.confessionId}`,
-      });
-    }
-
+    
     // Update heat score on the confession
     if (confession) {
       const reactions = await ctx.db
@@ -691,18 +597,6 @@ export const addComment = mutation({
       isHidden: false,
       createdAt: now,
     });
-
-    const confession = await ctx.db.get(args.confessionId);
-    if (confession) {
-      await ctx.scheduler.runAfter(0, internal.notifications.notifyThreadParticipants, {
-        confessionId: args.confessionId,
-        triggerSessionId: args.sessionId,
-        type: "comment",
-        title: "New Comment",
-        content: `Someone commented on a confession you follow: "${args.content.substring(0, 30)}..."`,
-        link: `/c/${args.confessionId}`,
-      });
-    }
   },
 });
 
@@ -731,18 +625,6 @@ export const voteInPoll = mutation({
       option: args.option,
       createdAt: Date.now(),
     });
-
-    // ── Trigger Notification ────────────────────────────────
-    const confession = await ctx.db.get(args.confessionId);
-    if (confession && confession.sessionId !== args.sessionId) {
-      await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
-        sessionId: confession.sessionId,
-        type: "pollVote",
-        title: "New Vote",
-        content: `Someone voted "${args.option}" on your poll.`,
-        link: `/c/${args.confessionId}`,
-      });
-    }
   },
 });
 

@@ -94,12 +94,12 @@ export function ConfessionCard({ confession }: Props) {
   const reactMutation = useMutation(api.confessions.react);
   const reportMutation = useMutation(api.confessions.report);
   const incrementView = useMutation(api.confessions.incrementView);
-  const toggleBookmark = useMutation(api.confessions.toggleBookmark);
+  const { isBookmarked, toggleBookmark } = useBookmarks();
   const toggleEcho = useMutation(api.confessions.toggleEcho);
   const voteInPoll = useMutation(api.confessions.voteInPoll);
   const incrementShare = useMutation(api.confessions.incrementShare);
 
-  const [bookmarked, setBookmarked] = useState(confession.isBookmarked);
+  const bookmarked = isBookmarked(confession._id);
   const [echoed, setEchoed] = useState(confession.isEchoed);
   const [echoCount, setEchoCount] = useState(confession.echoCount || 0);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -195,18 +195,9 @@ export function ConfessionCard({ confession }: Props) {
     }
   }
 
-  async function handleBookmark() {
-    if (!sessionId) {
-      toast.error("Connecting to the void... please wait.");
-      return;
-    }
-    try {
-      const res = await toggleBookmark({ confessionId: confession._id, sessionId });
-      setBookmarked(res.bookmarked);
-      toast.success(res.bookmarked ? "Saved to bookmarks" : "Removed from bookmarks");
-    } catch {
-      toast.error("Failed to bookmark.");
-    }
+  function handleBookmark() {
+    toggleBookmark(confession._id);
+    toast.success(!bookmarked ? "Saved to bookmarks" : "Removed from bookmarks");
   }
 
   async function handleEcho() {

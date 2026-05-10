@@ -36,6 +36,90 @@ export const checkUsername = query({
   },
 });
 
+/**
+ * Fetch recent activity related to the user's confessions.
+ * This effectively computes "notifications" on the fly by looking for 
+ * comments on posts owned by the user.
+ */
+export const getRecentActivity = query({
+  args: { 
+    sessionId: v.string(),
+    since: v.optional(v.number()), // Timestamp to look from
+  },
+  handler: async (ctx, args) => {
+    const { sessionId, since } = args;
+
+    // 1. Get all confessions by this user
+    const userConfessions = await ctx.db
+      .query("confessions")
+      .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+      .collect();
+
+    const confessionIds = userConfessions.map((c) => c._id);
+    if (confessionIds.length === 0) return [];
+
+    // 2. Fetch comments on these confessions
+    // Note: In a massive scale app, this would need optimization or a different approach,
+    // but for the free tier/low-cost start, this eliminates thousands of 'notification' rows.
+    let activityQuery = ctx.db.query("comments");
+    
+    // We'll collect all comments and filter by confessionIds
+    // (Convex doesn't have a 'v.in' index query yet)
+    const allComments = await activityQuery.order("desc").take(100);
+
+    const relevantComments = allComments.filter((comment) => 
+      confessionIds.includes(comment.confessionId) && 
+      comment.sessionId !== sessionId && // Don't notify for own comments
+      (!since || comment.createdAt > since)
+    );
+
+    // ── 3. Fetch recent DM messages ───────────────────────
+    const dmsA = await ctx.db
+      .query("directMessages")
+      .withIndex("by_participantA", (q) => q.eq("participantA", sessionId))
+      .collect();
+    const dmsB = await ctx.db
+      .query("directMessages")
+      .withIndex("by_participantB", (q) => q.eq("participantB", sessionId))
+      .collect();
+    const myDmIds = [...dmsA, ...dmsB].map((dm) => dm._id);
+
+    // Get last 50 messages total (simplification)
+    const allDmMessages = await ctx.db.query("dmMessages").order("desc").take(50);
+    const relevantDMs = allDmMessages.filter((dm) => 
+      myDmIds.includes(dm.dmId) && 
+      dm.senderSessionId !== sessionId &&
+      (!since || dm.createdAt > since)
+    );
+
+    // ── 4. Combine and Transform ──────────────────────────
+    const notifications = [
+      ...relevantComments.map((comment) => ({
+        _id: comment._id,
+        type: "comment",
+        title: "New Whisper",
+        content: comment.content.length > 50 
+          ? comment.content.substring(0, 47) + "..." 
+          : comment.content,
+        link: `/?c=${comment.confessionId}`,
+        createdAt: comment.createdAt,
+      })),
+      ...relevantDMs.map((dm) => ({
+        _id: dm._id,
+        type: "dm",
+        title: "New Message",
+        content: dm.content.length > 50 
+          ? dm.content.substring(0, 47) + "..." 
+          : dm.content,
+        link: `/chat/dm/${dm.dmId}`,
+        createdAt: dm.createdAt,
+      }))
+    ];
+
+    return notifications.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
 /* ─── Mutations ───────────────────────────────────────────── */
 
 const ADJECTIVES = ["Shadow", "Void", "Silent", "Midnight", "Ethereal", "Ghostly", "Abyssal", "Ink", "Muted", "Secret"];

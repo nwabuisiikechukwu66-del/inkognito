@@ -188,13 +188,6 @@ export const postNextSeed = internalAction({
       isNSFW: conf.category === "sexual",
       country,
     });
-    
-    await ctx.runMutation(internal.notifications.notifyActiveUsers, {
-      type: "system",
-      title: "New Confession",
-      content: `A new ${conf.category} confession was just posted to the void...`,
-      link: `/c/${id}`,
-    });
   }
 });
 

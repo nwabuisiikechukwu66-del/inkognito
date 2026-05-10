@@ -141,19 +141,7 @@ export const sendMessage = mutation({
     });
 
     // ── Trigger Notification ────────────────────────────────
-    const recipientId = dm.participantA === args.senderSessionId ? dm.participantB : dm.participantA;
-    const sender = await ctx.db
-      .query("anonUsers")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.senderSessionId))
-      .first();
-
-    await ctx.scheduler.runAfter(0, internal.notifications.createInternal, {
-      sessionId: recipientId,
-      type: "dm",
-      title: "New Message",
-      content: `${sender?.username || "Someone"} sent you a message.`,
-      link: `/chat/dm/${args.dmId}`,
-    });
+    // (Removed: Computing client-side now)
   },
 });
 

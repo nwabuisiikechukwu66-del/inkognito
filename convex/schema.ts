@@ -181,14 +181,6 @@ export default defineSchema({
     isConsumed: v.boolean(),
   }).index("by_token", ["token"]),
 
-  /* ── Bookmarks ───────────────────────────────────────────── */
-  bookmarks: defineTable({
-    sessionId: v.string(),
-    confessionId: v.id("confessions"),
-    createdAt: v.number(),
-  }).index("by_session", ["sessionId"])
-    .index("by_session_confession", ["sessionId", "confessionId"]),
-
   /* ── Echoes (Reposts) ────────────────────────────────────── */
   echoes: defineTable({
     sessionId: v.string(),
@@ -215,18 +207,6 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_session", ["sessionId"])
     .index("by_endpoint", ["endpoint"]),
-
-  /* ── Notifications ───────────────────────────────────────── */
-  notifications: defineTable({
-    sessionId: v.string(), // Recipient
-    type: v.string(),      // "reaction" | "comment" | "dm" | "system"
-    title: v.string(),
-    content: v.string(),
-    link: v.optional(v.string()),
-    isRead: v.boolean(),
-    createdAt: v.number(),
-  }).index("by_session", ["sessionId"])
-    .index("by_read", ["sessionId", "isRead"]),
 
   /* ── System Logs (For debugging crons/actions) ───────────── */
   systemLogs: defineTable({

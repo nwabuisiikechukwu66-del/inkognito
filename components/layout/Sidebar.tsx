@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useAnonSession } from "@/components/providers/AnonSessionProvider";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Home, Compass, PenSquare, MessagesSquare, Smile, User, Settings, Bell, Bookmark, Globe, ChevronDown, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,7 +38,7 @@ const BOTTOM_LINKS = [
 export function Sidebar() {
   const pathname = usePathname();
   const { isLoaded, country, sessionId } = useAnonSession();
-  const unreadCount = useQuery(api.notifications.getUnreadCount, { sessionId: sessionId || "" }) ?? 0;
+  const { unreadCount } = useNotifications();
   const myRealms = useQuery(api.realms.getMyRealms, sessionId ? { sessionId } : "skip");
   const [realmsExpanded, setRealmsExpanded] = useState(true);
 

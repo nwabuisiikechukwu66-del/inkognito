@@ -1,14 +1,11 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useAnonSession } from "@/components/providers/AnonSessionProvider";
+import { useBookmarks } from "@/hooks/useBookmarks";
 import { ConfessionCard } from "@/components/feed/ConfessionCard";
 import { Bookmark, Loader2 } from "lucide-react";
 
 export default function BookmarksPage() {
-  const { sessionId } = useAnonSession();
-  const bookmarks = useQuery(api.confessions.getBookmarks, { sessionId: sessionId || "" });
+  const { bookmarkedConfessions: bookmarks } = useBookmarks();
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">

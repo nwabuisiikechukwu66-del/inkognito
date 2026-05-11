@@ -103,7 +103,9 @@ export function CompanionChat() {
       abortRef.current = new AbortController();
 
       // Call Convex HTTP action → Groq streaming
-      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL!
+      const convexUrl = (process.env.NEXT_PUBLIC_CONVEX_URL ?? "")
+        .trim()
+        .replace(/\/+$/, "") // Robustly trim trailing slashes
         .replace(".cloud", ".site") // Convex HTTP actions use .site domain
         .replace("convex.cloud", "convex.site");
 

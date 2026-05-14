@@ -254,6 +254,82 @@ export const getById = query({
 });
 
 /**
+ * Get multiple confessions by their IDs.
+ */
+export const getByIds = query({
+  args: {
+    ids: v.array(v.id("confessions")),
+    sessionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const validIds = args.ids.filter(Boolean);
+    const confessions = await Promise.all(
+      validIds.map(async (id) => {
+        const c = await ctx.db.get(id);
+        if (!c || c.isHidden) return null;
+
+        const reactions = await ctx.db
+          .query("reactions")
+          .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
+          .collect();
+
+        const comments = await ctx.db
+          .query("comments")
+          .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
+          .filter((q) => q.eq(q.field("isHidden"), false))
+          .collect();
+
+        const reactionCounts: Record<string, number> = {};
+        for (const r of reactions) {
+          reactionCounts[r.type] = (reactionCounts[r.type] ?? 0) + 1;
+        }
+
+        const author = await ctx.db
+          .query("anonUsers")
+          .withIndex("by_session", (q) => q.eq("sessionId", c.sessionId))
+          .first();
+
+        let pollResults;
+        if (c.poll) {
+          const votes = await ctx.db
+            .query("pollVotes")
+            .withIndex("by_confession", (q) => q.eq("confessionId", c._id))
+            .collect();
+          const countA = votes.filter((v: any) => v.option === "A").length;
+          const countB = votes.filter((v: any) => v.option === "B").length;
+          const userVote = args.sessionId ? votes.find((v: any) => v.sessionId === args.sessionId)?.option : undefined;
+          pollResults = { countA, countB, total: votes.length, userVote };
+        }
+
+        const visibleComments = comments.filter((comm: any) => {
+          if (comm.type === "whisper") {
+            return args.sessionId === comm.sessionId || args.sessionId === c.sessionId;
+          }
+          return true;
+        });
+
+        const { country, city, ...safeConfession } = c;
+
+        return {
+          ...safeConfession,
+          authorUsername: author?.username,
+          authorIsPremium: author?.isPremium ?? false,
+          reactionCount: reactions.length,
+          reactionCounts,
+          commentCount: visibleComments.length,
+          pollResults,
+          shareCount: c.shareCount ?? 0,
+          echoCount: (await ctx.db.query("echoes").withIndex("by_confession", (q) => q.eq("confessionId", c._id)).collect()).length,
+          isEchoed: args.sessionId ? (await ctx.db.query("echoes").withIndex("by_session_confession", (q) => q.eq("sessionId", args.sessionId!).eq("confessionId", c._id)).first() !== null) : false,
+        };
+      })
+    );
+
+    return confessions.filter((c) => c !== null);
+  },
+});
+
+/**
  * Get session user's own confessions.
  */
 export const getMyConfessions = query({

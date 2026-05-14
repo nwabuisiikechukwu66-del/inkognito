@@ -31,6 +31,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SubscriptionModal } from "@/components/ui/SubscriptionModal";
+import { useBookmarks } from "@/hooks/useBookmarks";
 
 /* ── Types ─────────────────────────────────────────────────── */
 interface ConfessionData {
